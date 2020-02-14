@@ -2,17 +2,16 @@ package ru.poplavkov.foreader
 
 /**
   * Representation of an input text. Could be a String, File, Stream etc
-  * Main purpose of the class is to extract lexical items from the input text
   *
   * @author mpoplavkov
   */
 sealed trait TextRepresentation[F[_]] {
 
   /**
-    * Extract first [[LexicalItem]] from represented text
+    * Extract first token from represented text
     *
-    * @return extracted lexical item and a new [[TextRepresentation]] to find the next item in
+    * @return extracted token and a new [[TextRepresentation]] to find the next token in
     */
-  def nextLexicalItem: F[(LexicalItem, TextRepresentation[F])]
+  def nextToken: F[(Token, TextRepresentation[F])]
 
 }

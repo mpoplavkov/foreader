@@ -1,5 +1,7 @@
 package ru.poplavkov.foreader.dictionary
 
+import scala.language.higherKinds
+
 /**
   * @author mpoplavkov
   */

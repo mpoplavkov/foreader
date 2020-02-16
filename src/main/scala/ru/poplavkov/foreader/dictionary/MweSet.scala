@@ -2,6 +2,8 @@ package ru.poplavkov.foreader.dictionary
 
 import ru.poplavkov.foreader.Globals.Word
 
+import scala.language.higherKinds
+
 /**
   * Set of multi-word expressions (MWE)
   *

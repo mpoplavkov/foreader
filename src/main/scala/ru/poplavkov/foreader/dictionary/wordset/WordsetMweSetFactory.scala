@@ -1,7 +1,7 @@
 package ru.poplavkov.foreader.dictionary.wordset
 
 import java.nio.charset.Charset
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path}
 
 import cats.Applicative
 import cats.syntax.applicative._
@@ -23,13 +23,15 @@ import scala.language.higherKinds
   * @see https://github.com/wordset/wordset-dictionary
   * @author mpoplavkov
   */
-class WordsetMweSetFactory[F[_] : Applicative](pathToWordsetDictionary: String) extends MweSetFactory[F] {
+class WordsetMweSetFactory[F[_] : Applicative](pathToWordsetDictionary: Path,
+                                               fileNames: Set[String] = FileNamesSet)
+  extends MweSetFactory[F] {
 
   override def createMweSet(): F[MweSet[F]] = {
 
     val mapsSet: Set[Map[Word, Set[List[Word]]]] = for {
-      fileName <- FileNamesSet
-      fileContent = readFile(s"$pathToWordsetDictionary/$fileName")
+      fileName <- fileNames
+      fileContent = readFile(pathToWordsetDictionary, fileName)
       jsonFileContent <- parse(fileContent).toOption
       jsonObject <- jsonFileContent.asObject
     } yield jsonObject.keys
@@ -49,8 +51,8 @@ object WordsetMweSetFactory {
 
   private val FileNamesSet: Set[String] = ('a' to 'z').map(_ + ".json").toSet
 
-  private def readFile(path: String, encoding: Charset = Charset.defaultCharset()): String = {
-    val encoded = Files.readAllBytes(Paths.get(path))
+  private def readFile(path: Path, fileName: String, encoding: Charset = Charset.defaultCharset()): String = {
+    val encoded = Files.readAllBytes(path.resolve(fileName))
     new String(encoded, encoding)
   }
 

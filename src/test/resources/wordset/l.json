@@ -1,0 +1,75 @@
+{
+  "largely": {
+    "word": "largely",
+    "wordset_id": "aecc105675",
+    "meanings": [
+      {
+        "id": "9faec38240",
+        "def": "in large part",
+        "speech_part": "adverb",
+        "synonyms": [
+          "mostly",
+          "for the most part"
+        ]
+      },
+      {
+        "id": "6801638f32",
+        "def": "on a large scale",
+        "example": "the sketch was so largely drawn that you could see it from the back row",
+        "speech_part": "adverb"
+      }
+    ]
+  },
+  "long ago": {
+    "word": "long ago",
+    "wordset_id": "6fa55db642",
+    "meanings": [
+      {
+        "id": "3409fef2c7",
+        "def": "of the distant or comparatively distant past",
+        "example": "We met once long ago",
+        "speech_part": "adverb",
+        "synonyms": [
+          "long since",
+          "lang syne"
+        ]
+      }
+    ]
+  },
+  "long since": {
+    "word": "long since",
+    "wordset_id": "1857055ca0",
+    "meanings": [
+      {
+        "id": "be2de16a14",
+        "def": "of the distant or comparatively distant past",
+        "speech_part": "adverb",
+        "synonyms": [
+          "long ago"
+        ]
+      }
+    ]
+  },
+  "let alone": {
+    "word": "let alone",
+    "wordset_id": "94815cc2cd",
+    "meanings": [
+      {
+        "id": "675a2734ed",
+        "def": "much less    ",
+        "example": "I can't boil potatoes, let alone cook a meal.",
+        "speech_part": "adverb",
+        "synonyms": [
+          "not to mention"
+        ]
+      }
+    ],
+    "editors": [
+      "lefurjah"
+    ],
+    "contributors": [
+      "msingle",
+      "sabreuse"
+    ]
+  }
+}

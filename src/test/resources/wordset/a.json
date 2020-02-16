@@ -1,0 +1,169 @@
+{
+  "about": {
+    "word": "about",
+    "wordset_id": "0b26c47336",
+    "meanings": [
+      {
+        "id": "c8c0ac13b0",
+        "def": "imprecise quantities but fairly close to correct",
+        "example": "Last night's bill was about twenty dollars.",
+        "speech_part": "adverb",
+        "synonyms": [
+          "close to",
+          "just about",
+          "some",
+          "roughly",
+          "more or less",
+          "around",
+          "or so",
+          "approximately"
+        ]
+      },
+      {
+        "id": "c953138436",
+        "def": "in the area or vicinity",
+        "example": "a few spectators standing about",
+        "speech_part": "adverb",
+        "synonyms": [
+          "around"
+        ]
+      },
+      {
+        "id": "7efa4a1c7f",
+        "def": "all around or on all sides",
+        "example": "dirty clothes lying around (or about)",
+        "speech_part": "adverb",
+        "synonyms": [
+          "around"
+        ]
+      },
+      {
+        "id": "ee1224e132",
+        "def": "in or to a reversed position or direction",
+        "example": "about face",
+        "speech_part": "adverb",
+        "synonyms": [
+          "around"
+        ]
+      },
+      {
+        "id": "dfb5369aca",
+        "def": "used of movement to or among many different places or in no particular direction",
+        "example": "wandering about with no place to go",
+        "speech_part": "adverb",
+        "synonyms": [
+          "around"
+        ]
+      },
+      {
+        "id": "ec84b6387f",
+        "def": "(of actions or states) slightly short of or not quite accomplished",
+        "speech_part": "adverb",
+        "synonyms": [
+          "almost",
+          "most",
+          "nearly",
+          "near",
+          "nigh",
+          "well-nigh"
+        ]
+      },
+      {
+        "id": "d64581688e",
+        "def": "in rotation or succession",
+        "example": "turn about is fair play",
+        "speech_part": "adverb"
+      },
+      {
+        "id": "2edf9a8823",
+        "def": "on the move",
+        "speech_part": "adjective",
+        "synonyms": [
+          "astir"
+        ]
+      }
+    ],
+    "editors": [
+      "zellerpress"
+    ],
+    "contributors": [
+      "sabreuse",
+      "lauradhahn",
+      "lefurjah"
+    ]
+  },
+  "all right": {
+    "word": "all right",
+    "wordset_id": "46249e29ca",
+    "meanings": [
+      {
+        "id": "b5e43f1411",
+        "def": "in a satisfactory or adequate manner",
+        "speech_part": "adverb",
+        "synonyms": [
+          "o.k.",
+          "ok",
+          "okeh",
+          "okay"
+        ]
+      },
+      {
+        "id": "b26a10c905",
+        "def": "an expression of agreement normally occurring at the beginning of a sentence",
+        "speech_part": "adverb",
+        "synonyms": [
+          "alright",
+          "OK",
+          "very well",
+          "fine"
+        ]
+      },
+      {
+        "id": "05ca9bea93",
+        "def": "without doubt (used to reinforce an assertion)",
+        "example": "it's expensive all right",
+        "speech_part": "adverb",
+        "synonyms": [
+          "alright"
+        ]
+      },
+      {
+        "id": "d76513558a",
+        "def": "being satisfactory or in satisfactory condition",
+        "speech_part": "adjective",
+        "synonyms": [
+          "o.k.",
+          "ok",
+          "okeh",
+          "okay"
+        ]
+      }
+    ]
+  },
+  "a day late and a dollar short": {
+    "word": "a day late and a dollar short",
+    "wordset_id": "cc17b6872d",
+    "meanings": [
+      {
+        "id": "ead341c72d",
+        "def": "action taken too late and too feeble to be of any use",
+        "example": "The student's effort was a day late and a dollar short.",
+        "speech_part": "noun",
+        "labels": [
+          {
+            "name": "idiom",
+            "is_dialect": false
+          }
+        ]
+      }
+    ],
+    "editors": [
+      "lefurjah"
+    ],
+    "contributors": [
+      "zellerpress",
+      "sabreuse",
+      "hcatlin"
+    ]
+  }
+}

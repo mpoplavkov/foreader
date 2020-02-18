@@ -29,7 +29,7 @@ class WordsetMweSetFactory[F[_] : Applicative](pathToWordsetDictionary: Path,
 
   override def createMweSet(): F[MweSet[F]] = {
 
-    val mapsSet: Set[Map[Word, Set[List[Word]]]] = for {
+    val mapsSet: Set[Map[Word, Set[Seq[Word]]]] = for {
       fileName <- fileNames
       fileContent = readFile(pathToWordsetDictionary, fileName)
       jsonFileContent <- parse(fileContent).toOption
@@ -38,7 +38,7 @@ class WordsetMweSetFactory[F[_] : Applicative](pathToWordsetDictionary: Path,
       .map(_.split(" ").map(_.taggedWith[WordTag]))
       .filter(_.length > 1)
       .groupBy(_.head)
-      .mapValues(_.map(_.tail.toList).toSet)
+      .mapValues(_.map(_.tail.toSeq).toSet)
 
     val mweSet: MweSet[F] = new MapMweSetImpl(mapsSet.reduce(_ ++ _))
 

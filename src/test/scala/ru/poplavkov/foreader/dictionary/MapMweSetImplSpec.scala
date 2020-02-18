@@ -15,7 +15,7 @@ class MapMweSetImplSpec extends SpecBase {
     "return list of words associated with key" in {
       val key = generate[Word]
       val value = generate[Word]
-      val set = Set(List(value))
+      val set = Set(Seq(value))
       val map = Map(key -> set)
       val mweSet = new MapMweSetImpl[Id](map)
 
@@ -26,7 +26,7 @@ class MapMweSetImplSpec extends SpecBase {
       val key = generate[Word]
       val anotherKey = generateSuchThat[Word](_ != key)
       val value = generate[Word]
-      val map = Map(key -> Set(List(value)))
+      val map = Map(key -> Set(Seq(value)))
       val mweSet = new MapMweSetImpl[Id](map)
 
       mweSet.getMwesStartingWith(anotherKey) shouldBe Set.empty
@@ -35,7 +35,7 @@ class MapMweSetImplSpec extends SpecBase {
     "return values in order" in {
       val key = generate[Word]
       val i = generate[Int](Gen.chooseNum(2, 5))
-      val values = List.fill(i)(generate[Word])
+      val values = Seq.fill(i)(generate[Word])
       val set = Set(values)
       val map = Map(key -> set)
       val mweSet = new MapMweSetImpl[Id](map)
@@ -46,7 +46,7 @@ class MapMweSetImplSpec extends SpecBase {
     "return a few lists of words associated with key" in {
       val key = generate[Word]
       val i = generate[Int](Gen.chooseNum(2, 5))
-      val set = List.fill(i)(List(generate[Word])).toSet
+      val set = Seq.fill(i)(Seq(generate[Word])).toSet
       val map = Map(key -> set)
       val mweSet = new MapMweSetImpl[Id](map)
 

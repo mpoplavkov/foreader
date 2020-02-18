@@ -19,24 +19,24 @@ class WordsetMweSetFactorySpec extends SpecBase {
 
     "extract single MWE from dictionary" in {
       val actual = mweSet.getMwesStartingWith("all".taggedWith[WordTag])
-      actual shouldBe Set(List("right"))
+      actual shouldBe Set(Seq("right"))
     }
 
     "extract long MWE from dictionary" in {
-      val actual: Set[List[Word]] = mweSet.getMwesStartingWith("a".taggedWith[WordTag])
-      actual shouldBe Set(List("day", "late", "and", "a", "dollar", "short"))
+      val actual: Set[Seq[Word]] = mweSet.getMwesStartingWith("a".taggedWith[WordTag])
+      actual shouldBe Set(Seq("day", "late", "and", "a", "dollar", "short"))
     }
 
     "extract a few MWEs from dictionary" in {
       val actual = mweSet.getMwesStartingWith("long".taggedWith[WordTag])
-      actual shouldBe Set(List("ago"), List("since"))
+      actual shouldBe Set(Seq("ago"), Seq("since"))
     }
 
     "extract MWEs from different files" in {
       val actual1 = mweSet.getMwesStartingWith("all".taggedWith[WordTag])
       val actual2 = mweSet.getMwesStartingWith("let".taggedWith[WordTag])
-      actual1 shouldBe Set(List("right"))
-      actual2 shouldBe Set(List("alone"))
+      actual1 shouldBe Set(Seq("right"))
+      actual2 shouldBe Set(Seq("alone"))
     }
 
     "not extract MWE for single key in dictionary" in {

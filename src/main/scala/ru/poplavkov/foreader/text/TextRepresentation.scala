@@ -1,5 +1,7 @@
 package ru.poplavkov.foreader.text
 
+import cats.data.OptionT
+
 import scala.language.higherKinds
 
 /**
@@ -10,10 +12,11 @@ import scala.language.higherKinds
 trait TextRepresentation[F[_]] {
 
   /**
-    * Extracts first `n` tokens from represented text
+    * Extracts next string from the text
     *
-    * @return extracted tokens and a new [[TextRepresentation]] to find the next token in
+    * @return extracted string and a new [[TextRepresentation]] to extract the next string from
+    *         or `None` if the text is empty
     */
-  def nextTokens(n: Int): F[(Seq[Token], TextRepresentation[F])]
+  def next(): OptionT[F, (String, TextRepresentation[F])]
 
 }

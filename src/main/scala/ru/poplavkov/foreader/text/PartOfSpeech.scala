@@ -33,21 +33,4 @@ object PartOfSpeech extends Enum[PartOfSpeech] {
 
   case object Other extends PartOfSpeech
 
-  // A POS tag (or part-of-speech tag) is a special label assigned to each token (word)
-  // in a text corpus to indicate the part of speech and often also other grammatical
-  // categories such as tense, number (plural/singular), case etc
-  def fromPosTag(tag: String): PartOfSpeech = tag match {
-    case "NN" | "NNS" | "NNP" | "NNPS" => Noun
-    case "VB" | "VBD" | "VBG" | "VBN" | "VBP" | "VBZ" => Verb
-    case "CC" => Conjunction
-    case "UN" => Interjection
-    case "CD" => Numeral
-    case "IN" => Preposition
-    case "JJ" | "JJR" | "JJS" => Adjective
-    case "PRP" | "PRP$" | "WP" => Pronoun
-    case "RB" | "RBR" | "RBS" | "WRB" => Adverb
-    case "DT" | "EX" | "FW" | "LS" | "MD" | "PDT" | "POS" | "RP" | "SYM" | "TO" | "WDT" | "WP$" => Other
-    case _ => Other
-  }
-
 }

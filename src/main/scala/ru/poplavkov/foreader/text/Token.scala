@@ -11,7 +11,7 @@ sealed trait Token {
 
 object Token {
 
-  case class Word(position: Int, original: String, lemma: String, partOfSpeech: String) extends Token
+  case class Word(position: Int, original: String, lemma: String, partOfSpeech: PartOfSpeech) extends Token
 
   case class Punctuation(position: Int, mark: PunctuationMark) extends Token
 

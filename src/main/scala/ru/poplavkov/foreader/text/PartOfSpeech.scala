@@ -31,6 +31,6 @@ object PartOfSpeech extends Enum[PartOfSpeech] {
 
   case object Numeral extends PartOfSpeech
 
-  case object Other extends PartOfSpeech
+  case class Other(tag: String) extends PartOfSpeech
 
 }

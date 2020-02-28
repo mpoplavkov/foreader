@@ -1,6 +1,6 @@
 package ru.poplavkov.foreader.dictionary
 
-import ru.poplavkov.foreader.Globals.Word
+import ru.poplavkov.foreader.Globals.WordStr
 
 import scala.language.higherKinds
 
@@ -18,6 +18,6 @@ trait MweSet[F[_]] {
     * @param startWord word to lookup MWEs starting with it
     * @return set of MWEs or an empty set if no MWEs found
     */
-  def getMwesStartingWith(startWord: Word): F[Set[Seq[Word]]]
+  def getMwesStartingWith(startWord: WordStr): F[Set[Seq[WordStr]]]
 
 }

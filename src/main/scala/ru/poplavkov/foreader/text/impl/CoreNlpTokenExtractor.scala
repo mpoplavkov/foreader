@@ -3,7 +3,9 @@ package ru.poplavkov.foreader.text.impl
 import java.util.Properties
 
 import cats.effect.Sync
+import com.softwaremill.tagging._
 import edu.stanford.nlp.pipeline.{CoreDocument, CoreSentence, StanfordCoreNLP}
+import ru.poplavkov.foreader.Globals.WordStrTag
 import ru.poplavkov.foreader.text.Language.English
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor._
 import ru.poplavkov.foreader.text.{Language, PosTag, Token, TokenExtractor}
@@ -67,8 +69,8 @@ object CoreNlpTokenExtractor {
         case Right(partOfSpeech) =>
           Token.Word(
             position = token.beginPosition,
-            original = token.originalText,
-            lemma = lemma,
+            original = token.originalText.taggedWith[WordStrTag],
+            lemma = lemma.taggedWith[WordStrTag],
             partOfSpeech = partOfSpeech
           )
         case Left(punctuationMark) =>

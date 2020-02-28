@@ -7,7 +7,7 @@ import cats.Applicative
 import cats.syntax.applicative._
 import com.softwaremill.tagging._
 import io.circe.parser._
-import ru.poplavkov.foreader.Globals.{Word, WordTag}
+import ru.poplavkov.foreader.Globals.{WordStr, WordStrTag}
 import ru.poplavkov.foreader.dictionary.wordset.WordsetMweSetFactory._
 import ru.poplavkov.foreader.dictionary.{MapMweSetImpl, MweSet, MweSetFactory}
 
@@ -29,13 +29,13 @@ class WordsetMweSetFactory[F[_] : Applicative](pathToWordsetDictionary: Path,
 
   override def createMweSet(): F[MweSet[F]] = {
 
-    val mapsSet: Set[Map[Word, Set[Seq[Word]]]] = for {
+    val mapsSet: Set[Map[WordStr, Set[Seq[WordStr]]]] = for {
       fileName <- fileNames
       fileContent = readFile(pathToWordsetDictionary, fileName)
       jsonFileContent <- parse(fileContent).toOption
       jsonObject <- jsonFileContent.asObject
     } yield jsonObject.keys
-      .map(_.split(" ").map(_.taggedWith[WordTag]))
+      .map(_.split(" ").map(_.taggedWith[WordStrTag]))
       .filter(_.length > 1)
       .groupBy(_.head)
       .mapValues(_.map(_.tail.toSeq).toSet)

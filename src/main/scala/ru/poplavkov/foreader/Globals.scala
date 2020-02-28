@@ -9,7 +9,7 @@ import com.softwaremill.tagging.@@
   */
 object Globals {
 
-  trait WordTag
-  type Word = String @@ WordTag
+  trait WordStrTag
+  type WordStr = String @@ WordStrTag
 
 }

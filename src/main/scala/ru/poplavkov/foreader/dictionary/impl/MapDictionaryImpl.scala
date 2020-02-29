@@ -8,6 +8,8 @@ import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry, Dictionary
 import scala.language.higherKinds
 
 /**
+  * Implementation of the [[Dictionary]] based on the [[DictionaryMap]]
+  *
   * @author mpoplavkov
   */
 class MapDictionaryImpl[F[_] : Applicative](map: DictionaryMap) extends Dictionary[F] {

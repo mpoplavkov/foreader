@@ -8,6 +8,8 @@ import ru.poplavkov.foreader.dictionary.{MweMap, MweSet}
 import scala.language.higherKinds
 
 /**
+  * Implementation of the [[MweSet]] based on the [[MweMap]]
+  *
   * @author mpoplavkov
   */
 class MapMweSetImpl[F[_] : Applicative](map: MweMap) extends MweSet[F] {

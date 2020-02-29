@@ -71,5 +71,42 @@
       "msingle",
       "sabreuse"
     ]
+  },
+  "lastingly": {
+    "word": "lastingly",
+    "wordset_id": "b05c6c5205",
+    "meanings": [
+      {
+        "id": "991677c80a",
+        "def": "in an enduring or permanent manner",
+        "speech_part": "adverb"
+      }
+    ]
+  },
+  "lopsidedly": {
+    "word": "lopsidedly",
+    "wordset_id": "8481f20cee",
+    "meanings": [
+      {
+        "id": "c2ab1fda0c",
+        "def": "in a crooked lopsided manner",
+        "example": "I smiled lopsidedly.",
+        "speech_part": "adverb",
+        "synonyms": [
+          "crookedly"
+        ]
+      }
+    ],
+    "editors": [
+      "lefurjah"
+    ],
+    "contributors": [
+      "juliann",
+      "anna",
+      "msingle",
+      "sabreuse",
+      "zellerpress",
+      "hcatlin"
+    ]
   }
 }

@@ -5,6 +5,7 @@ import org.scalacheck.Gen
 import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.SpecBase
+import ru.poplavkov.foreader.dictionary.impl.MapMweSetImpl
 
 /**
   * @author mpoplavkov

@@ -4,17 +4,17 @@ import cats.Id
 import com.softwaremill.tagging._
 import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.Globals.{WordStr, WordStrTag}
-import ru.poplavkov.foreader.SpecBase
-import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.dictionary.MweSet
+import ru.poplavkov.foreader.dictionary.impl.MapMweSetImpl
 
 /**
+  * Spec for [[MweSet]] based on the wordset dictionary
+  *
   * @author mpoplavkov
   */
-class WordsetMweSetFactorySpec extends SpecBase {
+class WordsetMweSetSpec extends WordsetSpecBase[Id] {
 
-  val factory = new WordsetMweSetFactory[Id](getResourcePath("/wordset"), fileNames = Set("a.json", "l.json"))
-  val mweSet: MweSet[Id] = factory.createMweSet()
+  val mweSet: MweSet[Id] = new MapMweSetImpl[Id](extractor.extractMweMap)
 
   "WordsetMweSet" should {
 

@@ -1,26 +1,19 @@
 package ru.poplavkov.foreader
 
+import ru.poplavkov.foreader.text.Token
+
 /**
   * Single word, a part of a word, or a chain of words
   * Lexical items can be generally understood to convey a single meaning
   *
   * @author mpoplavkov
   */
-trait LexicalItem {
+sealed trait LexicalItem
 
-  /**
-    * Canonical form of the item used in dictionaries
-    */
-  def canonicalForm: String
+object LexicalItem {
 
-  /**
-    * Original form of the item in the text
-    */
-  def originalForm: String
+  case class SingleWord(word: Token.Word) extends LexicalItem
 
-  /**
-    * Starting position of the item in the text
-    */
-  def position: Int
+  case class MultiWordExpression(words: Seq[Token.Word]) extends LexicalItem
 
 }

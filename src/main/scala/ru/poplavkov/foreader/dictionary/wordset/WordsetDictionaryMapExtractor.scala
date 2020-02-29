@@ -35,13 +35,10 @@ class WordsetDictionaryMapExtractor[F[_]: Applicative](pathToWordsetDictionary: 
         fileContent = readFile(pathToWordsetDictionary, fileName)
         jsonFileContent <- parse(fileContent).toOption.toSeq
         jsonObject <- jsonFileContent.asObject.toSeq
-        keyEntry <- jsonObject.toList
-        (key, entry) = keyEntry
+        (key, entry) <- jsonObject.toList
         dictEntry <- extractDictionaryEntryFromJson(entry)
-      } yield {
-        val words = key.split(" ").map(_.taggedWith[WordStrTag])
-        words.toSeq -> dictEntry
-      }).toMap
+        words = key.split(" ").map(_.taggedWith[WordStrTag])
+      } yield words.toSeq -> dictEntry).toMap
 
     dictMap.pure
   }

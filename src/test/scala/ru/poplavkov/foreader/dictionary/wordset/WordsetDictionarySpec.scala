@@ -18,32 +18,6 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
 
   val dictionary: Dictionary[Id] = new MapDictionaryImpl[Id](extractor.extractDictionaryMap)
 
-  case class TestCase(description: String, words: Seq[WordStr], expected: DictionaryEntry)
-
-  val cases: Seq[TestCase] = Seq(
-    TestCase(
-      description = "extract dictionary entry for multi word expression",
-      words = Seq(w"a", w"day", w"late", w"and", w"a", w"dollar", w"short"),
-      expected = DictionaryEntry(Seq(
-        Meaning(
-          definition = "imprecise quantities but fairly close to correct",
-          partOfSpeech = Some(PartOfSpeech.Adverb),
-          examples = Seq("Last night's bill was about twenty dollars."),
-          synonyms = Seq(
-            "close to",
-            "just about",
-            "some",
-            "roughly",
-            "more or less",
-            "around",
-            "or so",
-            "approximately"
-          )
-        )
-      ))
-    )
-  )
-
   "WordsetDictionary" should {
 
     "extract dictionary entry for single word" in {

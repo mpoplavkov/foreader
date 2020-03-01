@@ -1,17 +1,11 @@
 package ru.poplavkov.foreader.text
 
-import enumeratum._
-
-import scala.collection.immutable
-
 /**
   * @author mpoplavkov
   */
-sealed trait PartOfSpeech extends EnumEntry
+sealed trait PartOfSpeech
 
-object PartOfSpeech extends Enum[PartOfSpeech] {
-
-  override def values: immutable.IndexedSeq[PartOfSpeech] = findValues
+object PartOfSpeech {
 
   case object Noun extends PartOfSpeech
 

@@ -15,6 +15,8 @@ trait SpecBase extends AnyWordSpec with Matchers with Mockito
 
 object SpecBase {
 
+  type CovariantId[+A] = A
+
   def getResourcePath(path: String): Path =
     Paths.get(getClass.getResource(path).toURI)
 

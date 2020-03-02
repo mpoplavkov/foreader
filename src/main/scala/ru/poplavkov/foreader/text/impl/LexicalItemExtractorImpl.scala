@@ -9,6 +9,7 @@ import ru.poplavkov.foreader.dictionary.MweSet
 import ru.poplavkov.foreader.text.{LexicalItemExtractor, Token, TokensFilter}
 
 import scala.annotation.tailrec
+import scala.language.higherKinds
 
 /**
   * @author mpoplavkov
@@ -39,7 +40,9 @@ class LexicalItemExtractorImpl[F[+_] : Monad](filter: TokensFilter,
 
             firstFoundMwe match {
               case Some((mwe, restOfTheWords)) =>
-                tokensToLexicalItemsInternal(restOfTheWords ++ restTokens, LexicalItem.MultiWordExpression(mwe) :: resultReversed)
+                val rest = restOfTheWords ++ restTokens
+                val item = LexicalItem.MultiWordExpression(word :: mwe)
+                tokensToLexicalItemsInternal(rest, item :: resultReversed)
               case None =>
                 tokensToLexicalItemsInternal(rest, LexicalItem.SingleWord(word) :: resultReversed)
             }

@@ -1,17 +1,11 @@
 package ru.poplavkov.foreader.text
 
-import enumeratum._
-
-import scala.collection.immutable
-
 /**
   * @author mpoplavkov
   */
-sealed trait PunctuationMark extends EnumEntry
+sealed trait PunctuationMark
 
-object PunctuationMark extends Enum[PunctuationMark] {
-
-  override def values: immutable.IndexedSeq[PunctuationMark] = findValues
+object PunctuationMark {
 
   case object Dot extends PunctuationMark
 

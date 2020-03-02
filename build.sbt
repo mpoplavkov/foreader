@@ -13,6 +13,8 @@ val LogbackVersion = "1.2.3"
 
 val ScalatestVersion = "3.1.0"
 val ScalacheckVersion = "1.14.3"
+val Specs2Version = "4.8.3"
+val ScalacheckShapelessVersion = "1.2.3"
 
 libraryDependencies ++= Seq(
   "com.softwaremill.common" %% "tagging" % SoftwaremillTaggingVersion,
@@ -23,7 +25,12 @@ libraryDependencies ++= Seq(
   "edu.stanford.nlp" % "stanford-corenlp" % StanfordCoreNlpVersion,
   "edu.stanford.nlp" % "stanford-corenlp" % StanfordCoreNlpVersion classifier "models-english",
   "ch.qos.logback" % "logback-classic" % LogbackVersion,
+  "org.scalactic" %% "scalactic" % ScalatestVersion,
 
   "org.scalatest" %% "scalatest" % ScalatestVersion % Test,
-  "org.scalacheck" %% "scalacheck" % ScalacheckVersion % Test
+  "org.scalacheck" %% "scalacheck" % ScalacheckVersion % Test,
+  "org.specs2" %% "specs2-mock" % Specs2Version % Test,
+  "com.github.alexarchambault" %% "scalacheck-shapeless_1.14" % ScalacheckShapelessVersion % Test
 )
+
+resolvers += Resolver.sonatypeRepo("releases")

@@ -5,14 +5,17 @@ import java.nio.file.{Path, Paths}
 import com.softwaremill.tagging._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.specs2.mock.Mockito
 import ru.poplavkov.foreader.Globals._
 
 /**
   * @author mpoplavkov
   */
-trait SpecBase extends AnyWordSpec with Matchers
+trait SpecBase extends AnyWordSpec with Matchers with Mockito
 
 object SpecBase {
+
+  type CovariantId[+A] = A
 
   def getResourcePath(path: String): Path =
     Paths.get(getClass.getResource(path).toURI)

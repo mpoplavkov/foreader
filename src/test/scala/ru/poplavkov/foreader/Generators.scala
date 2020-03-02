@@ -1,22 +1,25 @@
 package ru.poplavkov.foreader
 
 import com.softwaremill.tagging._
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen, ScalacheckShapeless}
+import ru.poplavkov.foreader.Globals.WordStr
+
+import scala.language.implicitConversions
 
 /**
   * @author mpoplavkov
   */
-object Generators {
+object Generators extends ScalacheckShapeless {
 
-  implicit def generate[A](implicit gen: Gen[A]): A =
-    Iterator.continually(gen.sample).flatten.next()
+  implicit def genToArbitrary[A](g: Gen[A]): Arbitrary[A] = Arbitrary(g)
 
-  implicit def generateSuchThat[A](condition: A => Boolean)(implicit gen: Gen[A]): A =
-    generate(gen.suchThat(condition))
+  def generate[A: Arbitrary]: A =
+    Iterator.continually(Arbitrary.arbitrary[A].sample).flatten.next()
 
-  implicit val StringGen: Gen[String] = Gen.alphaNumStr
+  def generateSuchThat[A: Arbitrary](condition: A => Boolean): A =
+    generate(Arbitrary.arbitrary[A].suchThat(condition))
 
-  implicit def taggedGen[A: Gen, T]: Gen[A @@ T] =
-    generate[A].taggedWith[T]
+  implicit lazy val string: Arbitrary[String] = Gen.alphaNumStr
+  implicit lazy val wordStr: Arbitrary[WordStr] = Arbitrary.arbitrary[String].map(_.taggedWith)
 
 }

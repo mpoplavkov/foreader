@@ -19,6 +19,7 @@ import scala.language.higherKinds
   */
 class TextProcessingEngineImpl[F[_] : Monad](tokenExtractor: TokenExtractor[F],
                                              lexicalItemExtractor: LexicalItemExtractor[F],
+                                             lexicalItemFilter: LexicalItemFilter,
                                              levelDeterminator: LevelDeterminator[F],
                                              dictionary: Dictionary[F])
   extends TextProcessingEngine[F] {
@@ -26,7 +27,8 @@ class TextProcessingEngineImpl[F[_] : Monad](tokenExtractor: TokenExtractor[F],
   override def process(text: TextRepresentation[F], filter: LexicalItemGroupFilter): F[Seq[Card]] =
     for {
       allLexicalItems <- extractAllLexicalItems(text)
-      grouped = allLexicalItems.groupBy(item => (item.partsOfSpeech, item.lemmas))
+      filtered = lexicalItemFilter.filterItems(allLexicalItems)
+      grouped = filtered.groupBy(item => (item.partsOfSpeech, item.lemmas))
       groups <- grouped.toList.traverse { case ((pos, lemmas), items) =>
         toLexicalItemGroup(items, pos, lemmas).value
       }.map(_.flatten)

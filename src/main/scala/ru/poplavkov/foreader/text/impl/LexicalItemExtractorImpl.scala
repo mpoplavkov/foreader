@@ -6,7 +6,7 @@ import cats.syntax.flatMap._
 import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.LexicalItem
 import ru.poplavkov.foreader.dictionary.MweSet
-import ru.poplavkov.foreader.text.{LexicalItemExtractor, Token, TokensFilter}
+import ru.poplavkov.foreader.text.{LexicalItemExtractor, Token}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -14,8 +14,7 @@ import scala.language.higherKinds
 /**
   * @author mpoplavkov
   */
-class LexicalItemExtractorImpl[F[+_] : Monad](filter: TokensFilter,
-                                              mweSet: MweSet[F])
+class LexicalItemExtractorImpl[F[+_] : Monad](mweSet: MweSet[F])
   extends LexicalItemExtractor[F] {
 
   override def lexicalItemsFromTokens(tokens: Seq[Token]): F[Seq[LexicalItem]] =
@@ -25,7 +24,7 @@ class LexicalItemExtractorImpl[F[+_] : Monad](filter: TokensFilter,
   private def tokensToLexicalItemsInternal(tokens: List[Token],
                                            resultReversed: List[LexicalItem] = Nil): F[Seq[LexicalItem]] =
     tokens match {
-      case (word: Token.Word) :: rest if filter.filter(word) =>
+      case (word: Token.Word) :: rest =>
         mweSet.getMwesStartingWith(word.lemma).flatMap {
           case set if set.isEmpty =>
             tokensToLexicalItemsInternal(rest, LexicalItem.SingleWord(word) :: resultReversed)

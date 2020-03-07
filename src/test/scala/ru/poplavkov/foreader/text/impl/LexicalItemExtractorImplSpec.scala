@@ -4,7 +4,7 @@ import org.scalacheck.Gen
 import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.SpecBase.CovariantId
 import ru.poplavkov.foreader.dictionary.MweSet
-import ru.poplavkov.foreader.text.{LexicalItemExtractor, Token, TokensFilter}
+import ru.poplavkov.foreader.text.{LexicalItemExtractor, Token}
 import ru.poplavkov.foreader.{LexicalItem, SpecBase}
 
 /**
@@ -12,19 +12,15 @@ import ru.poplavkov.foreader.{LexicalItem, SpecBase}
   */
 class LexicalItemExtractorImplSpec extends SpecBase {
 
-  val tokensFilter: TokensFilter = mock[TokensFilter]
   val mweSet: MweSet[CovariantId] = mock[MweSet[CovariantId]]
 
-  def lexicalItemExtractor: LexicalItemExtractor[CovariantId] = new LexicalItemExtractorImpl(tokensFilter, mweSet)
+  def lexicalItemExtractor: LexicalItemExtractor[CovariantId] = new LexicalItemExtractorImpl(mweSet)
 
   "LexicalItemExtractorImpl" should {
 
     "extract lexical item from one word" in {
       val word = generate[Token.Word]
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set.empty)
         .when(mweSet)
         .getMwesStartingWith(anyObject)
@@ -36,9 +32,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
     "extract sequence of single words" in {
       val words = genWords(2, 10)
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set.empty)
         .when(mweSet)
         .getMwesStartingWith(anyObject)
@@ -54,9 +47,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val words = words1 ++ words2
       val sentence = (words1 :+ punctuation) ++ words2
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set.empty)
         .when(mweSet)
         .getMwesStartingWith(anyObject)
@@ -65,41 +55,11 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       lexicalItemExtractor.lexicalItemsFromTokens(sentence) shouldBe expected
     }
 
-    "extract nothing with the stern filter" in {
-      val words = genWords(2, 10)
-
-      doReturn(false)
-        .when(tokensFilter)
-        .filter(anyObject)
-
-      val expected = Seq.empty[LexicalItem]
-      lexicalItemExtractor.lexicalItemsFromTokens(words) shouldBe expected
-    }
-
-    "extract only filtered items" in {
-      val words = genWords(2, 10)
-      val randWordIndex = generate(Gen.chooseNum(0, words.size - 1))
-      val good = words(randWordIndex)
-
-      doReturn(false)
-        .when(tokensFilter)
-        .filter(anyObject)
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(good)
-
-      val expected = Seq(LexicalItem.SingleWord(good))
-      lexicalItemExtractor.lexicalItemsFromTokens(words) shouldBe expected
-    }
-
     "extract small multi word expression" in {
       val startingWord = generate[Token.Word]
       val secondWord = generate[Token.Word]
       val sentence = Seq(startingWord, secondWord)
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set(Seq(secondWord.lemma)))
         .when(mweSet)
         .getMwesStartingWith(startingWord.lemma)
@@ -114,9 +74,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val otherWords = genWords(2, 10)
       val sentence = startingWord +: otherWords
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set(otherWords.map(_.lemma)))
         .when(mweSet)
         .getMwesStartingWith(startingWord.lemma)
@@ -131,9 +88,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val secondWord = generate[Token.Word]
       val sentence = startingWord +: otherWords :+ secondWord
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set.empty)
         .when(mweSet)
         .getMwesStartingWith(anyObject)
@@ -156,9 +110,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val otherMwes = (1 to countMwes).map(_ => genWords(1, 5).map(_.lemma))
       val mwes = (otherMwes :+ Seq(secondWord.lemma)).toSet
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(mwes)
         .when(mweSet)
         .getMwesStartingWith(startingWord.lemma)
@@ -173,9 +124,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val otherWord = generateSuchThat[Token.Word](_ != secondWord)
       val sentence = Seq(startingWord, otherWord)
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set.empty)
         .when(mweSet)
         .getMwesStartingWith(anyObject)
@@ -193,9 +141,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val thirdWord = generateSuchThat[Token.Word](_ != secondWord)
       val sentence = Seq(startingWord, secondWord)
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set.empty)
         .when(mweSet)
         .getMwesStartingWith(anyObject)
@@ -213,9 +158,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val secondWord = generate[Token.Word]
       val sentence = Seq(startingWord, punctuation, secondWord)
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set.empty)
         .when(mweSet)
         .getMwesStartingWith(anyObject)
@@ -233,9 +175,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val secondWord = generate[Token.Word]
       val sentence = Seq(secondWord, startingWord)
 
-      doReturn(true)
-        .when(tokensFilter)
-        .filter(anyObject)
       doReturn(Set.empty)
         .when(mweSet)
         .getMwesStartingWith(anyObject)

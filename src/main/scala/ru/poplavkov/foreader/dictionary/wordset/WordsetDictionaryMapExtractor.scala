@@ -1,7 +1,6 @@
 package ru.poplavkov.foreader.dictionary.wordset
 
-import java.nio.charset.Charset
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 
 import cats.Applicative
 import cats.syntax.applicative._
@@ -12,6 +11,7 @@ import ru.poplavkov.foreader.Globals.WordStrTag
 import ru.poplavkov.foreader.dictionary.wordset.WordsetDictionaryMapExtractor._
 import ru.poplavkov.foreader.dictionary.{DictionaryEntry, DictionaryMap, DictionaryMapExtractor}
 import ru.poplavkov.foreader.text.PartOfSpeech
+import ru.poplavkov.foreader.util._
 
 /**
   * [[DictionaryMapExtractor]] based on the wordset dictionary
@@ -48,11 +48,6 @@ class WordsetDictionaryMapExtractor[F[_]: Applicative](pathToWordsetDictionary: 
 object WordsetDictionaryMapExtractor {
 
   private val FileNamesSet: Set[String] = ('a' to 'z').map(_ + ".json").toSet
-
-  private def readFile(path: Path, fileName: String, encoding: Charset = Charset.defaultCharset()): String = {
-    val encoded = Files.readAllBytes(path.resolve(fileName))
-    new String(encoded, encoding)
-  }
 
   private def extractDictionaryEntryFromJson(json: Json): Option[DictionaryEntry] = {
     val meaningsArray = for {

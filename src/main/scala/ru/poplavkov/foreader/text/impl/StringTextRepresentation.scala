@@ -11,7 +11,7 @@ import scala.language.higherKinds
   */
 class StringTextRepresentation[F[_] : Applicative](text: String) extends TextRepresentation[F] {
 
-  override def next(): OptionT[F, (String, TextRepresentation[F])] =
+  override def next: OptionT[F, (String, TextRepresentation[F])] =
     OptionT.some((text, new EmptyTextRepresentation[F]))
 
 }

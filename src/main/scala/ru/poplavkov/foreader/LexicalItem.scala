@@ -1,6 +1,7 @@
 package ru.poplavkov.foreader
 
-import ru.poplavkov.foreader.text.Token
+import ru.poplavkov.foreader.Globals.WordStr
+import ru.poplavkov.foreader.text.{PartOfSpeech, Token}
 
 /**
   * Single word, a part of a word, or a chain of words
@@ -8,7 +9,18 @@ import ru.poplavkov.foreader.text.Token
   *
   * @author mpoplavkov
   */
-sealed trait LexicalItem
+sealed trait LexicalItem {
+
+  def partsOfSpeech: Seq[PartOfSpeech] = fromWords(_.partOfSpeech)
+
+  def lemmas: Seq[WordStr] = fromWords(_.lemma)
+
+  private def fromWords[T](f: Token.Word => T): Seq[T] = this match {
+    case LexicalItem.SingleWord(word) => Seq(f(word))
+    case LexicalItem.MultiWordExpression(words) => words.map(f)
+  }
+
+}
 
 object LexicalItem {
 

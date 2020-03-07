@@ -8,7 +8,14 @@ import ru.poplavkov.foreader.text.PartOfSpeech
   *
   * @author mpoplavkov
   */
-case class DictionaryEntry(meanings: Seq[Meaning])
+case class DictionaryEntry(meanings: Seq[Meaning]) {
+
+  def isEmpty: Boolean = meanings.isEmpty
+
+  def filterMeanings(p: Meaning => Boolean): DictionaryEntry =
+    copy(meanings = meanings.filter(p))
+
+}
 
 object DictionaryEntry {
 

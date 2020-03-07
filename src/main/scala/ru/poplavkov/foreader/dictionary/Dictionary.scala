@@ -2,6 +2,7 @@ package ru.poplavkov.foreader.dictionary
 
 import cats.data.OptionT
 import ru.poplavkov.foreader.Globals.WordStr
+import ru.poplavkov.foreader.text.PartOfSpeech
 
 import scala.language.higherKinds
 
@@ -12,16 +13,23 @@ trait Dictionary[F[_]] {
 
   /**
     * Searches for a definition of a single word
+    *
     * @return found [[DictionaryEntry]] or None
     */
-  final def getDefinition(word: WordStr): OptionT[F, DictionaryEntry] = getDefinitionInternal(Seq(word))
+  final def getDefinition(word: WordStr,
+                          partOfSpeech: Option[PartOfSpeech]): OptionT[F, DictionaryEntry] =
+    getDefinitionInternal(Seq(word), partOfSpeech)
 
   /**
     * Searches for a definition of a multi-word expression (MWE)
+    *
     * @return found [[DictionaryEntry]] or None
     */
-  final def getDefinition(phrase: Seq[WordStr]): OptionT[F, DictionaryEntry] = getDefinitionInternal(phrase)
+  final def getDefinition(phrase: Seq[WordStr],
+                          partOfSpeech: Option[PartOfSpeech]): OptionT[F, DictionaryEntry] =
+    getDefinitionInternal(phrase, partOfSpeech)
 
-  protected def getDefinitionInternal(words: Seq[WordStr]): OptionT[F, DictionaryEntry]
+  protected def getDefinitionInternal(words: Seq[WordStr],
+                                      partOfSpeech: Option[PartOfSpeech]): OptionT[F, DictionaryEntry]
 
 }

@@ -4,6 +4,7 @@ import cats.Applicative
 import cats.data.OptionT
 import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry, DictionaryMap}
+import ru.poplavkov.foreader.text.PartOfSpeech
 
 import scala.language.higherKinds
 
@@ -14,7 +15,18 @@ import scala.language.higherKinds
   */
 class MapDictionaryImpl[F[_] : Applicative](map: DictionaryMap) extends Dictionary[F] {
 
-  override protected def getDefinitionInternal(words: Seq[WordStr]): OptionT[F, DictionaryEntry] =
-    OptionT.fromOption(map.get(words))
+  override protected def getDefinitionInternal(words: Seq[WordStr],
+                                               partOfSpeech: Option[PartOfSpeech]): OptionT[F, DictionaryEntry] =
+    (map.get(words), partOfSpeech) match {
+      case (None, _) =>
+        OptionT.none
+      case (Some(entry), None) =>
+        OptionT.some(entry)
+      case (Some(entry), Some(pos)) =>
+        val suitableEntry = entry.filterMeanings(_.partOfSpeech.contains(pos))
+        OptionT.some {
+          if (suitableEntry.isEmpty) entry else suitableEntry
+        }
+    }
 
 }

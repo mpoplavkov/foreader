@@ -47,7 +47,7 @@ class TextProcessingEngineImpl[F[_] : Monad](tokenExtractor: TokenExtractor[F],
                                  lemmas: Seq[WordStr]): OptionT[F, LexicalItemGroup] =
     for {
       level <- levelDeterminator.determineLevel(items.head).orElse(OptionT.pure(LexicalItemLevel.C2))
-      definition <- dictionary.getDefinition(lemmas)
+      definition <- dictionary.getDefinition(lemmas, pos.headOption)
     } yield LexicalItemGroup(items, level, definition)
 
   private def extractAllLexicalItems(text: TextRepresentation[F]): F[Seq[LexicalItem]] = {

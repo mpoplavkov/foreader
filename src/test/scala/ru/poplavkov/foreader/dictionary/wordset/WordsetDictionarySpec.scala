@@ -2,7 +2,7 @@ package ru.poplavkov.foreader.dictionary.wordset
 
 import cats.Id
 import com.softwaremill.tagging._
-import ru.poplavkov.foreader.Globals.{WordStr, WordStrTag}
+import ru.poplavkov.foreader.Globals.WordStrTag
 import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.dictionary.DictionaryEntry.Meaning
 import ru.poplavkov.foreader.dictionary.impl.MapDictionaryImpl
@@ -30,7 +30,7 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
       )
       val expected = DictionaryEntry(Seq(expectedMeaning))
 
-      dictionary.getDefinition(word).value shouldBe Some(expected)
+      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe Some(expected)
 
     }
 
@@ -44,7 +44,7 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
       )
       val expected = DictionaryEntry(Seq(expectedMeaning))
 
-      dictionary.getDefinition(words).value shouldBe Some(expected)
+      dictionary.getDefinition(words, partOfSpeech = None).value shouldBe Some(expected)
 
     }
 
@@ -58,7 +58,7 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
       )
       val expected = DictionaryEntry(Seq(expectedMeaning))
 
-      dictionary.getDefinition(word).value shouldBe Some(expected)
+      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe Some(expected)
 
     }
 
@@ -78,22 +78,56 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
       )
       val expected = DictionaryEntry(Seq(expectedMeaning1, expectedMeaning2))
 
-      dictionary.getDefinition(word).value shouldBe Some(expected)
+      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe Some(expected)
+
+    }
+
+    "extract dictionary entry with multiple meanings with specified part of speech" in {
+      val word = w"largely"
+      val expectedMeaning1 = Meaning(
+        definition = "in large part",
+        partOfSpeech = Some(PartOfSpeech.Adverb),
+        examples = Seq.empty,
+        synonyms = Seq("mostly", "for the most part")
+      )
+      val expectedMeaning2 = Meaning(
+        definition = "on a large scale",
+        partOfSpeech = Some(PartOfSpeech.Adverb),
+        examples = Seq("the sketch was so largely drawn that you could see it from the back row"),
+        synonyms = Seq.empty
+      )
+      val expected = DictionaryEntry(Seq(expectedMeaning1, expectedMeaning2))
+
+      dictionary.getDefinition(word, Some(PartOfSpeech.Adverb)).value shouldBe Some(expected)
+
+    }
+
+    "extract dictionary entry with only specified part of speech" in {
+      val word = w"about"
+      val expectedMeaning = Meaning(
+        definition = "on the move",
+        partOfSpeech = Some(PartOfSpeech.Adjective),
+        examples = Seq.empty,
+        synonyms = Seq("astir")
+      )
+      val expected = DictionaryEntry(Seq(expectedMeaning))
+
+      dictionary.getDefinition(word, Some(PartOfSpeech.Adjective)).value shouldBe Some(expected)
 
     }
 
     "return None for MWE as one string" in {
       val word = w"a day late and a dollar short"
       val existedWords = word.split(" ").map(_.taggedWith[WordStrTag])
-      dictionary.getDefinition(existedWords).value shouldBe 'nonEmpty
-      dictionary.getDefinition(word).value shouldBe None
+      dictionary.getDefinition(existedWords, partOfSpeech = None).value shouldBe 'nonEmpty
+      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe None
     }
 
     "return None for nonexistent key" in {
       val word = w"nonexistent"
       val words = Seq(w"non", w"existent")
-      dictionary.getDefinition(word).value shouldBe None
-      dictionary.getDefinition(words).value shouldBe None
+      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe None
+      dictionary.getDefinition(words, partOfSpeech = None).value shouldBe None
     }
 
   }

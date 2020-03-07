@@ -17,6 +17,6 @@ trait TextRepresentation[F[_]] {
     * @return extracted string and a new [[TextRepresentation]] to extract the next string from
     *         or `None` if the text is empty
     */
-  def next(): OptionT[F, (String, TextRepresentation[F])]
+  def next: OptionT[F, (String, TextRepresentation[F])]
 
 }

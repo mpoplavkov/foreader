@@ -15,7 +15,7 @@ import scala.language.higherKinds
   * @author mpoplavkov
   */
 class LexicalItemExtractorImpl[F[+_] : Monad](filter: TokensFilter,
-                                             mweSet: MweSet[F])
+                                              mweSet: MweSet[F])
   extends LexicalItemExtractor[F] {
 
   override def lexicalItemsFromTokens(tokens: Seq[Token]): F[Seq[LexicalItem]] =
@@ -30,7 +30,7 @@ class LexicalItemExtractorImpl[F[+_] : Monad](filter: TokensFilter,
           case set if set.isEmpty =>
             tokensToLexicalItemsInternal(rest, LexicalItem.SingleWord(word) :: resultReversed)
           case set =>
-            val (words, restTokens) = extractStartingWords(rest)
+            val (words, restTokens) = extractStartingWords(rest, limit = 10)
             val firstFoundMwe = set.foldLeft[Option[(List[Token.Word], List[Token.Word])]](None) {
               case (None, mwe) =>
                 removeSubsequenceInOrder(words, mwe.toList)
@@ -83,10 +83,13 @@ class LexicalItemExtractorImpl[F[+_] : Monad](filter: TokensFilter,
     */
   @tailrec
   private def extractStartingWords(tokens: List[Token],
+                                   limit: Int,
                                    alreadyExtracted: List[Token.Word] = Nil): (List[Token.Word], List[Token]) =
     tokens match {
-      case (word: Token.Word) :: rest => extractStartingWords(rest, alreadyExtracted :+ word)
-      case _ => (alreadyExtracted, tokens)
+      case (word: Token.Word) :: rest if limit > 0 =>
+        extractStartingWords(rest, limit - 1, alreadyExtracted :+ word)
+      case _ =>
+        (alreadyExtracted, tokens)
     }
 
 }

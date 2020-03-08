@@ -7,7 +7,5 @@ import ru.poplavkov.foreader.text.LexicalItemFilter
   * @author mpoplavkov
   */
 object EmptyLexicalItemFilter extends LexicalItemFilter {
-  override protected def innerFilter: PartialFunction[LexicalItem, Boolean] = {
-    case _ => true
-  }
+  override def filter(lexicalItem: LexicalItem): Boolean = true
 }

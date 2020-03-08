@@ -5,8 +5,8 @@ import java.nio.file.{Files, Path}
 
 package object util {
 
-  def readFile(path: Path, fileName: String, encoding: Charset = Charset.defaultCharset()): String = {
-    val encoded = Files.readAllBytes(path.resolve(fileName))
+  def readFile(path: Path, encoding: Charset = Charset.defaultCharset()): String = {
+    val encoded = Files.readAllBytes(path)
     new String(encoded, encoding)
   }
 

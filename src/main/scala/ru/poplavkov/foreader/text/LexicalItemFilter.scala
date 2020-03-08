@@ -7,10 +7,7 @@ import ru.poplavkov.foreader.LexicalItem
   */
 trait LexicalItemFilter {
 
-  protected def innerFilter: PartialFunction[LexicalItem, Boolean]
-
-  final def filter(lexicalItem: LexicalItem): Boolean =
-    innerFilter.applyOrElse(lexicalItem, (_: LexicalItem) => true)
+  def filter(lexicalItem: LexicalItem): Boolean
 
   final def filterItems(items: Seq[LexicalItem]): Seq[LexicalItem] =
     items.filter(filter)

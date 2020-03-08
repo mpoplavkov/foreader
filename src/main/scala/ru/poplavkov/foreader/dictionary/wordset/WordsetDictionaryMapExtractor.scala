@@ -32,7 +32,7 @@ class WordsetDictionaryMapExtractor[F[_]: Applicative](pathToWordsetDictionary: 
     val dictMap: DictionaryMap =
       (for {
         fileName <- fileNames
-        fileContent = readFile(pathToWordsetDictionary, fileName)
+        fileContent = readFile(pathToWordsetDictionary.resolve(fileName))
         jsonFileContent <- parse(fileContent).toOption.toSeq
         jsonObject <- jsonFileContent.asObject.toSeq
         (key, entry) <- jsonObject.toList

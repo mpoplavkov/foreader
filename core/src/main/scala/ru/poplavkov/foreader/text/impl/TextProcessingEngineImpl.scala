@@ -8,9 +8,9 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import ru.poplavkov.foreader.Globals.WordStr
+import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.Dictionary
 import ru.poplavkov.foreader.text._
-import ru.poplavkov.foreader._
 
 import scala.language.higherKinds
 

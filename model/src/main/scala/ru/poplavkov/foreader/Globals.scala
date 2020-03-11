@@ -10,6 +10,7 @@ import com.softwaremill.tagging.@@
 object Globals {
 
   trait WordStrTag
+
   type WordStr = String @@ WordStrTag
 
 }

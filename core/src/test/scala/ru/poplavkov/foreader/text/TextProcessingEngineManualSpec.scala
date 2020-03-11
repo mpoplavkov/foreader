@@ -6,13 +6,13 @@ import cats.effect.{IO, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.scalatest.Ignore
-import ru.poplavkov.foreader.{Card, Language, SpecBase}
+import ru.poplavkov.foreader.FileUtil._
 import ru.poplavkov.foreader.SpecBase.getResourcePath
 import ru.poplavkov.foreader.dictionary.impl.{MapDictionaryImpl, MapMweSetImpl}
 import ru.poplavkov.foreader.dictionary.wordset.WordsetDictionaryMapExtractor
-import ru.poplavkov.foreader.text.impl._
-import ru.poplavkov.foreader.FileUtil._
 import ru.poplavkov.foreader.text.empty.{EmptyLevelDeterminator, EmptyLexicalItemGroupFilter}
+import ru.poplavkov.foreader.text.impl._
+import ru.poplavkov.foreader.{Card, Language, SpecBase}
 
 import scala.language.higherKinds
 

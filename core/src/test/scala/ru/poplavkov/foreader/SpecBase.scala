@@ -26,4 +26,5 @@ object SpecBase {
       sc.raw().taggedWith[WordStrTag]
     }
   }
+
 }

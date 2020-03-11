@@ -28,7 +28,7 @@ class TextProcessingEngineManualSpec extends SpecBase {
 
   def getEngine[F[+_] : Sync]: F[TextProcessingEngine[F]] = {
     val extractor = new WordsetDictionaryMapExtractor[F](
-      pathToWordsetDictionary = getResourcePath("/books/wordset")
+      pathToWordsetDictionary = getResourcePath("/books/.local/wordset")
     )
     for {
       dictMap <- extractor.extractDictionaryMap
@@ -64,7 +64,7 @@ class TextProcessingEngineManualSpec extends SpecBase {
       val engine = getEngine[IO].unsafeRunSync
 
       val book = new StringTextRepresentation[IO](
-        readFile(getResourcePath("/books/book.txt"))
+        readFile(getResourcePath("/books/.local/book.txt"))
       )
 
       val start = Instant.now

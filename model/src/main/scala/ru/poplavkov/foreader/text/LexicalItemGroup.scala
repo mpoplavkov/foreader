@@ -1,4 +1,6 @@
-package ru.poplavkov.foreader
+package ru.poplavkov.foreader.text
+
+import ru.poplavkov.foreader.dictionary.DictionaryEntry
 
 /**
   * Group of the same lexical items with the same part of speech

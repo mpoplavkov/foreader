@@ -1,4 +1,4 @@
-package ru.poplavkov.foreader
+package ru.poplavkov.foreader.text
 
 /**
   * @author mpoplavkov

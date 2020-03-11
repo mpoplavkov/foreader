@@ -1,7 +1,5 @@
 package ru.poplavkov.foreader.text
 
-import ru.poplavkov.foreader.{LexicalItem, Token}
-
 import scala.language.higherKinds
 
 /**

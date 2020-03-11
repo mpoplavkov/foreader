@@ -10,7 +10,9 @@ import ru.poplavkov.foreader.FileUtil._
 import ru.poplavkov.foreader.SpecBase.getResourcePath
 import ru.poplavkov.foreader.dictionary.impl.{MapDictionaryImpl, MapMweSetImpl}
 import ru.poplavkov.foreader.dictionary.wordset.WordsetDictionaryMapExtractor
-import ru.poplavkov.foreader.text.empty.{EmptyLevelDeterminator, EmptyLexicalItemGroupFilter}
+import ru.poplavkov.foreader.text.empty.EmptyLevelDeterminator
+import ru.poplavkov.foreader.text.filter.empty.EmptyLexicalItemGroupFilter
+import ru.poplavkov.foreader.text.filter.impl.{CompositeLexicalItemFilter, StopwordsLexicalItemFilter}
 import ru.poplavkov.foreader.text.impl._
 import ru.poplavkov.foreader.{Card, Language, SpecBase}
 

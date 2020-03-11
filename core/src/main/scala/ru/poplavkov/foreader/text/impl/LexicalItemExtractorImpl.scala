@@ -5,8 +5,7 @@ import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.dictionary.MweSet
-import ru.poplavkov.foreader.text.LexicalItemExtractor
-import ru.poplavkov.foreader.{LexicalItem, Token}
+import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, Token}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds

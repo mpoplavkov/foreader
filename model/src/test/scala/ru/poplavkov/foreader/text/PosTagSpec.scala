@@ -1,6 +1,6 @@
 package ru.poplavkov.foreader.text
 
-import ru.poplavkov.foreader.{PartOfSpeech, PosTag, PunctuationMark, SpecBase}
+import ru.poplavkov.foreader.SpecBase
 
 /**
   * @author mpoplavkov

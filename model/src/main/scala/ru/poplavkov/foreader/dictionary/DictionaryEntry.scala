@@ -1,6 +1,7 @@
-package ru.poplavkov.foreader
+package ru.poplavkov.foreader.dictionary
 
-import ru.poplavkov.foreader.DictionaryEntry._
+import ru.poplavkov.foreader.dictionary.DictionaryEntry._
+import ru.poplavkov.foreader.text.PartOfSpeech
 
 /**
   * Information for a specific word or MWE extracted from the dictionary

@@ -1,6 +1,6 @@
-package ru.poplavkov.foreader
+package ru.poplavkov.foreader.text
 
-import ru.poplavkov.foreader.PosTag._
+import ru.poplavkov.foreader.text.PosTag._
 
 /**
   * A POS tag (or part-of-speech tag) is a special label assigned to each token (word)

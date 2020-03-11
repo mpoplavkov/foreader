@@ -1,6 +1,6 @@
-package ru.poplavkov.foreader.text
+package ru.poplavkov.foreader.text.filter
 
-import ru.poplavkov.foreader.LexicalItem
+import ru.poplavkov.foreader.text.LexicalItem
 
 /**
   * @author mpoplavkov

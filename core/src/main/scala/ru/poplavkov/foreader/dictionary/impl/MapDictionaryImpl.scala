@@ -3,8 +3,8 @@ package ru.poplavkov.foreader.dictionary.impl
 import cats.Applicative
 import cats.data.OptionT
 import ru.poplavkov.foreader.Globals.WordStr
-import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryMap}
-import ru.poplavkov.foreader.{DictionaryEntry, PartOfSpeech}
+import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry, DictionaryMap}
+import ru.poplavkov.foreader.text.PartOfSpeech
 
 import scala.language.higherKinds
 

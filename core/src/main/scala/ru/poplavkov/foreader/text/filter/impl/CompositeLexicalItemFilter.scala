@@ -1,7 +1,7 @@
-package ru.poplavkov.foreader.text.impl
+package ru.poplavkov.foreader.text.filter.impl
 
-import ru.poplavkov.foreader.LexicalItem
-import ru.poplavkov.foreader.text.LexicalItemFilter
+import ru.poplavkov.foreader.text.LexicalItem
+import ru.poplavkov.foreader.text.filter.LexicalItemFilter
 
 /**
   * Checks if [[LexicalItem]] satisfies all `filters`

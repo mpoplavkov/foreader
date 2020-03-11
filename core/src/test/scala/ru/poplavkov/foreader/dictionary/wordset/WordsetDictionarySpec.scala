@@ -2,12 +2,12 @@ package ru.poplavkov.foreader.dictionary.wordset
 
 import cats.Id
 import com.softwaremill.tagging._
-import ru.poplavkov.foreader.DictionaryEntry.Meaning
 import ru.poplavkov.foreader.Globals.WordStrTag
 import ru.poplavkov.foreader.SpecBase._
-import ru.poplavkov.foreader.dictionary.Dictionary
+import ru.poplavkov.foreader.dictionary.DictionaryEntry.Meaning
 import ru.poplavkov.foreader.dictionary.impl.MapDictionaryImpl
-import ru.poplavkov.foreader.{DictionaryEntry, PartOfSpeech}
+import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
+import ru.poplavkov.foreader.text.PartOfSpeech
 
 /**
   * Spec for [[Dictionary]] based on the wordset dictionary

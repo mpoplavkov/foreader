@@ -1,9 +1,9 @@
-package ru.poplavkov.foreader.text.impl
+package ru.poplavkov.foreader.text
 
 import java.nio.file.Path
 
 import com.softwaremill.tagging._
-import ru.poplavkov.foreader.FileUtil._
+import ru.poplavkov.foreader.FileUtil.readFile
 import ru.poplavkov.foreader.Globals.{WordStr, WordStrTag}
 
 /**

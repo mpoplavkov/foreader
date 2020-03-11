@@ -2,7 +2,7 @@ package ru.poplavkov.foreader.dictionary
 
 import cats.data.OptionT
 import ru.poplavkov.foreader.Globals.WordStr
-import ru.poplavkov.foreader.{DictionaryEntry, PartOfSpeech}
+import ru.poplavkov.foreader.text.PartOfSpeech
 
 import scala.language.higherKinds
 

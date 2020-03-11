@@ -6,9 +6,9 @@ import cats.effect.Sync
 import com.softwaremill.tagging._
 import edu.stanford.nlp.pipeline.{CoreDocument, CoreSentence, StanfordCoreNLP}
 import ru.poplavkov.foreader.Globals.WordStrTag
-import ru.poplavkov.foreader.text.TokenExtractor
+import ru.poplavkov.foreader.Language
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor._
-import ru.poplavkov.foreader.{Language, PosTag, Token}
+import ru.poplavkov.foreader.text.{PosTag, Token, TokenExtractor}
 
 import scala.collection.JavaConverters._
 import scala.language.higherKinds

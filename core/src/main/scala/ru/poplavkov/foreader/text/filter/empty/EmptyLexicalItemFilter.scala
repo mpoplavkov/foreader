@@ -1,7 +1,7 @@
-package ru.poplavkov.foreader.text.empty
+package ru.poplavkov.foreader.text.filter.empty
 
-import ru.poplavkov.foreader.LexicalItem
-import ru.poplavkov.foreader.text.LexicalItemFilter
+import ru.poplavkov.foreader.text.LexicalItem
+import ru.poplavkov.foreader.text.filter.LexicalItemFilter
 
 /**
   * @author mpoplavkov

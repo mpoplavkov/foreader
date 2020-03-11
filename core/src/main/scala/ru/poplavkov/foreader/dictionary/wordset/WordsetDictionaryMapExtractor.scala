@@ -10,8 +10,8 @@ import io.circe.parser.parse
 import ru.poplavkov.foreader.FileUtil._
 import ru.poplavkov.foreader.Globals.WordStrTag
 import ru.poplavkov.foreader.dictionary.wordset.WordsetDictionaryMapExtractor._
-import ru.poplavkov.foreader.dictionary.{DictionaryMap, DictionaryMapExtractor}
-import ru.poplavkov.foreader.{DictionaryEntry, PartOfSpeech}
+import ru.poplavkov.foreader.dictionary.{DictionaryEntry, DictionaryMap, DictionaryMapExtractor}
+import ru.poplavkov.foreader.text.PartOfSpeech
 
 import scala.language.higherKinds
 

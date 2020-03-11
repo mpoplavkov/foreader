@@ -2,10 +2,10 @@ package ru.poplavkov.foreader.text.impl
 
 import org.scalacheck.Gen
 import ru.poplavkov.foreader.Generators._
+import ru.poplavkov.foreader.SpecBase
 import ru.poplavkov.foreader.SpecBase.CovariantId
 import ru.poplavkov.foreader.dictionary.MweSet
-import ru.poplavkov.foreader.text.LexicalItemExtractor
-import ru.poplavkov.foreader.{LexicalItem, SpecBase, Token}
+import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, Token}
 
 /**
   * @author mpoplavkov

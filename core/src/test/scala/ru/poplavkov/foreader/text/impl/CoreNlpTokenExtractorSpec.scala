@@ -2,8 +2,8 @@ package ru.poplavkov.foreader.text.impl
 
 import cats.effect.IO
 import ru.poplavkov.foreader.SpecBase._
-import ru.poplavkov.foreader.Token._
 import ru.poplavkov.foreader._
+import ru.poplavkov.foreader.text.Token._
 import ru.poplavkov.foreader.text._
 
 /**

@@ -1,7 +1,6 @@
 package ru.poplavkov.foreader.text
 
 import cats.data.OptionT
-import ru.poplavkov.foreader.{LexicalItem, LexicalItemLevel}
 
 import scala.language.higherKinds
 

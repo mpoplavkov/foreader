@@ -8,10 +8,10 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import ru.poplavkov.foreader.Globals.WordStr
+import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.Dictionary
 import ru.poplavkov.foreader.text._
 import ru.poplavkov.foreader.text.filter.{LexicalItemFilter, LexicalItemGroupFilter}
-import ru.poplavkov.foreader.{text, _}
 
 import scala.language.higherKinds
 
@@ -49,7 +49,7 @@ class TextProcessingEngineImpl[F[_] : Monad](tokenExtractor: TokenExtractor[F],
     for {
       level <- levelDeterminator.determineLevel(items.head).orElse(OptionT.pure(LexicalItemLevel.C2))
       definition <- dictionary.getDefinition(lemmas, pos.headOption)
-    } yield text.LexicalItemGroup(items, level, definition)
+    } yield LexicalItemGroup(items, level, definition)
 
   private def extractAllLexicalItems(text: TextRepresentation[F]): F[Seq[LexicalItem]] = {
     text.next.value.flatMap {

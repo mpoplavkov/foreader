@@ -10,21 +10,27 @@ import ru.poplavkov.foreader.Globals.WordStr
   */
 sealed trait LexicalItem {
 
-  def partsOfSpeech: Seq[PartOfSpeech] = fromWords(_.partOfSpeech)
+  def context: TextContext
 
-  def lemmas: Seq[WordStr] = fromWords(_.lemma)
+  final def partsOfSpeech: Seq[PartOfSpeech] = fromWords(_.partOfSpeech)
+
+  final def lemmas: Seq[WordStr] = fromWords(_.lemma)
+
+  final def originals: Seq[WordStr] = fromWords(_.original)
 
   private def fromWords[T](f: Token.Word => T): Seq[T] = this match {
-    case LexicalItem.SingleWord(word) => Seq(f(word))
-    case LexicalItem.MultiWordExpression(words) => words.map(f)
+    case LexicalItem.SingleWord(word, _) => Seq(f(word))
+    case LexicalItem.MultiWordExpression(words, _) => words.map(f)
   }
 
 }
 
 object LexicalItem {
 
-  case class SingleWord(word: Token.Word) extends LexicalItem
+  case class SingleWord(word: Token.Word,
+                        context: TextContext = TextContext.Empty) extends LexicalItem
 
-  case class MultiWordExpression(words: Seq[Token.Word]) extends LexicalItem
+  case class MultiWordExpression(words: Seq[Token.Word],
+                                 context: TextContext = TextContext.Empty) extends LexicalItem
 
 }

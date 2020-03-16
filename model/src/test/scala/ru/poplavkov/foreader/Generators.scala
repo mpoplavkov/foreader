@@ -19,6 +19,7 @@ object Generators extends ScalacheckShapeless {
   def generateSuchThat[A: Arbitrary](condition: A => Boolean): A =
     generate(Arbitrary.arbitrary[A].suchThat(condition))
 
+  // TODO: specify length
   implicit lazy val string: Arbitrary[String] = Gen.alphaNumStr
   implicit lazy val wordStr: Arbitrary[WordStr] = Arbitrary.arbitrary[String].map(_.taggedWith)
 

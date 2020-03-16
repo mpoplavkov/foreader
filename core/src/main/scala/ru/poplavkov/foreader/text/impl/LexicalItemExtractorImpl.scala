@@ -5,7 +5,8 @@ import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.dictionary.MweSet
-import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, Token}
+import ru.poplavkov.foreader.text.impl.LexicalItemExtractorImpl._
+import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, Token}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -21,12 +22,15 @@ class LexicalItemExtractorImpl[F[+_] : Monad](mweSet: MweSet[F])
 
   // TODO: check if it would not fail with StackOverflow for huge inputs
   private def tokensToLexicalItemsInternal(tokens: List[Token],
-                                           resultReversed: List[LexicalItem] = Nil): F[Seq[LexicalItem]] =
+                                           resultReversed: List[LexicalItem] = Nil): F[Seq[LexicalItem]] = {
+
+    def ctxt: Seq[Token] => TextContext = extractContext(resultReversed, _)
+
     tokens match {
       case (word: Token.Word) :: rest =>
         mweSet.getMwesStartingWith(word.lemma).flatMap {
           case set if set.isEmpty =>
-            tokensToLexicalItemsInternal(rest, LexicalItem.SingleWord(word) :: resultReversed)
+            tokensToLexicalItemsInternal(rest, LexicalItem.SingleWord(word, ctxt(rest)) :: resultReversed)
           case set =>
             val (words, restTokens) = extractStartingWords(rest, limit = 10)
             val firstFoundMwe = set.foldLeft[Option[(List[Token.Word], List[Token.Word])]](None) {
@@ -38,11 +42,11 @@ class LexicalItemExtractorImpl[F[+_] : Monad](mweSet: MweSet[F])
 
             firstFoundMwe match {
               case Some((mwe, restOfTheWords)) =>
-                val rest = restOfTheWords ++ restTokens
-                val item = LexicalItem.MultiWordExpression(word :: mwe)
-                tokensToLexicalItemsInternal(rest, item :: resultReversed)
+                val newRest = restOfTheWords ++ restTokens
+                val item = LexicalItem.MultiWordExpression(word :: mwe, ctxt(newRest))
+                tokensToLexicalItemsInternal(newRest, item :: resultReversed)
               case None =>
-                tokensToLexicalItemsInternal(rest, LexicalItem.SingleWord(word) :: resultReversed)
+                tokensToLexicalItemsInternal(rest, LexicalItem.SingleWord(word, ctxt(rest)) :: resultReversed)
             }
         }
       case _ :: rest =>
@@ -50,6 +54,28 @@ class LexicalItemExtractorImpl[F[+_] : Monad](mweSet: MweSet[F])
       case Nil =>
         resultReversed.reverse.pure[F]
     }
+  }
+
+}
+
+object LexicalItemExtractorImpl {
+
+  private[impl] val WordsBeforeToContext = 5
+  private[impl] val WordsAfterToContext = 5
+
+  private def extractContext(prevReversed: Seq[LexicalItem], upcoming: Seq[Token]): TextContext = {
+    val before = prevReversed.view
+      .flatMap(_.originals)
+      .take(WordsBeforeToContext)
+      .reverse
+      .force
+    val after = upcoming.view
+      .collect { case Token.Word(_, original, _, _) => original }
+      .take(WordsAfterToContext)
+      .force
+
+    TextContext.SurroundingWords(before, after)
+  }
 
   /**
     * Removes all elements from the `list` presented in `toRemove` in the same

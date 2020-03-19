@@ -102,6 +102,7 @@ object WordsetDictionaryMapExtractor {
     case "adjective" => Some(PartOfSpeech.Adjective)
     case "adverb" => Some(PartOfSpeech.Adverb)
     case "noun" => Some(PartOfSpeech.Noun)
+    case "verb" => Some(PartOfSpeech.Verb)
     case _ => None
   }
 

@@ -14,8 +14,9 @@ import ru.poplavkov.foreader.text.empty.EmptyLevelDeterminator
 import ru.poplavkov.foreader.text.filter.empty.EmptyLexicalItemGroupFilter
 import ru.poplavkov.foreader.text.filter.impl.{CompositeLexicalItemFilter, StopwordsLexicalItemFilter}
 import ru.poplavkov.foreader.text.impl._
-import ru.poplavkov.foreader.text.logging.LoggedLexicalItemFilter
-import ru.poplavkov.foreader.{Card, Language, SpecBase}
+import ru.poplavkov.foreader.text.logged.LoggedLexicalItemFilter
+import ru.poplavkov.foreader.word2vec.VectorsExtractor
+import ru.poplavkov.foreader.{Language, SpecBase}
 
 import scala.language.higherKinds
 
@@ -27,6 +28,8 @@ import scala.language.higherKinds
 @Ignore
 class TextProcessingEngineManualSpec extends SpecBase {
 
+  val text: String = readFile(getResourcePath("/books/.local/alice.txt")).take(500)
+
   def getEngine[F[+ _] : Sync]: F[TextProcessingEngine[F]] = {
     val extractor = new WordsetDictionaryMapExtractor[F](
       pathToWordsetDictionary = getResourcePath("/books/.local/wordset")
@@ -36,7 +39,8 @@ class TextProcessingEngineManualSpec extends SpecBase {
       mweMap <- extractor.extractMweMap
 
       mweSet = new MapMweSetImpl[F](mweMap)
-      dictionary = new DictionaryImpl[F](dictMap)
+      vectors <- VectorsExtractor.extractVectors[F](getResourcePath("/books/.local/word2vec/glove.6B.50d.txt"))
+      dictionary = new DictionaryImpl[F](dictMap, vectors)
 
       tokenExtractor = new CoreNlpTokenExtractor[F](Language.English)
       stopPhrasesFilter = new StopwordsLexicalItemFilter(
@@ -49,7 +53,7 @@ class TextProcessingEngineManualSpec extends SpecBase {
         with LoggedLexicalItemFilter
       itemExtractor = new LexicalItemExtractorImpl[F](mweSet)
       levelDeterminator = new EmptyLevelDeterminator[F]
-    } yield
+    } yield {
       new TextProcessingEngineImpl[F](
         tokenExtractor,
         itemExtractor,
@@ -57,6 +61,7 @@ class TextProcessingEngineManualSpec extends SpecBase {
         levelDeterminator,
         dictionary
       )
+    }
 
   }
 
@@ -65,20 +70,33 @@ class TextProcessingEngineManualSpec extends SpecBase {
 
       val engine = getEngine[IO].unsafeRunSync
 
-      val book = new StringTextRepresentation[IO](
-        readFile(getResourcePath("/books/.local/book.txt"))
-      )
+      val book = new StringTextRepresentation[IO](text)
 
       val start = Instant.now
 
       val cards = engine.process(book, EmptyLexicalItemGroupFilter).unsafeRunSync
-      cards
-        .sortBy(-_.groups.flatMap(_.items).size)
-        .take(100)
-        .foreach { case Card(lemmas, groups) =>
-          val count = groups.flatMap(_.items).size
-          println(s"${lemmas.mkString(" ")} [$count] - ${groups.head.definition.meanings.head.definition}")
 
+      val pairs = for {
+        card <- cards
+        group <- card.groups
+        item <- group.items
+      } yield (item, group.definition)
+
+      pairs
+        .sortBy { case (item, _) =>
+          item match {
+            case LexicalItem.SingleWord(word, _) => word.position
+            case LexicalItem.MultiWordExpression(words, _) => words.head.position
+          }
+        }
+        .take(100)
+        .foreach { case (item, entry) =>
+          val len = 20
+          val str = item.lemmas.mkString(" ")
+          val diff = len - str.length
+          val rest = Math.max(diff, 0)
+          val spaces = " " * rest
+          println(s"$str$spaces - ${entry.meanings.head.definition}")
         }
 
       val end = Instant.now

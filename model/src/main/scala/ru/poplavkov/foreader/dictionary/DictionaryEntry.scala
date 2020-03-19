@@ -24,4 +24,6 @@ object DictionaryEntry {
                      examples: Seq[String],
                      synonyms: Seq[String])
 
+  def withOneMeaning(meaning: Meaning): DictionaryEntry = DictionaryEntry(Seq(meaning))
+
 }

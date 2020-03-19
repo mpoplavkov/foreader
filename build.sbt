@@ -7,6 +7,7 @@ version := "0.0.1-SNAPSHOT"
 scalaVersion := "2.12.7"
 
 lazy val util = project
+  .dependsOn(model)
 
 lazy val model = project
   .settings(

@@ -12,6 +12,8 @@ import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
 import scala.language.higherKinds
 
 /**
+  * Extracts [[VectorsMap]] from file
+  *
   * @author mpoplavkov
   */
 object VectorsExtractor {

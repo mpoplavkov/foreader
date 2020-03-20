@@ -11,7 +11,11 @@ object TextContext {
 
   case object Empty extends TextContext
 
-  case class SurroundingWords(before: Seq[WordStr], after: Seq[WordStr]) extends TextContext
+  case class SurroundingWords(before: Seq[WordStr], after: Seq[WordStr]) extends TextContext {
+
+    def allWords: Seq[WordStr] = before ++ after
+
+  }
 
   object SurroundingWords {
 

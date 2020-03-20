@@ -1,13 +1,11 @@
-package ru.poplavkov.foreader.dictionary.wordset
+package ru.poplavkov.foreader.dictionary.impl
 
 import cats.Id
-import com.softwaremill.tagging._
-import ru.poplavkov.foreader.Globals.WordStrTag
+import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.dictionary.DictionaryEntry.Meaning
-import ru.poplavkov.foreader.dictionary.impl.MapDictionaryImpl
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
-import ru.poplavkov.foreader.text.PartOfSpeech
+import ru.poplavkov.foreader.text.{LexicalItem, PartOfSpeech, Token}
 
 /**
   * Spec for [[Dictionary]] based on the wordset dictionary
@@ -16,7 +14,7 @@ import ru.poplavkov.foreader.text.PartOfSpeech
   */
 class WordsetDictionarySpec extends WordsetSpecBase[Id] {
 
-  val dictionary: Dictionary[Id] = new MapDictionaryImpl[Id](extractor.extractDictionaryMap)
+  val dictionary: Dictionary[Id] = new DictionaryImpl[Id](extractor.extractDictionaryMap)
 
   "WordsetDictionary" should {
 
@@ -28,9 +26,11 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
         examples = Seq("I smiled lopsidedly."),
         synonyms = Seq("crookedly")
       )
+
+      val item = LexicalItem.SingleWord(generate[Token.Word].copy(lemma = word))
       val expected = DictionaryEntry(Seq(expectedMeaning))
 
-      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe Some(expected)
+      dictionary.getDefinition(item).value shouldBe Some(expected)
 
     }
 
@@ -42,9 +42,11 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
         examples = Seq("The student's effort was a day late and a dollar short."),
         synonyms = Seq.empty
       )
+      val tokens = Seq.tabulate(words.size)(i => generate[Token.Word].copy(lemma = words(i)))
+      val item = LexicalItem.MultiWordExpression(tokens)
       val expected = DictionaryEntry(Seq(expectedMeaning))
 
-      dictionary.getDefinition(words, partOfSpeech = None).value shouldBe Some(expected)
+      dictionary.getDefinition(item).value shouldBe Some(expected)
 
     }
 
@@ -56,9 +58,10 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
         examples = Seq.empty,
         synonyms = Seq.empty
       )
+      val item = LexicalItem.SingleWord(generate[Token.Word].copy(lemma = word))
       val expected = DictionaryEntry(Seq(expectedMeaning))
 
-      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe Some(expected)
+      dictionary.getDefinition(item).value shouldBe Some(expected)
 
     }
 
@@ -76,9 +79,10 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
         examples = Seq("the sketch was so largely drawn that you could see it from the back row"),
         synonyms = Seq.empty
       )
+      val item = LexicalItem.SingleWord(generate[Token.Word].copy(lemma = word))
       val expected = DictionaryEntry(Seq(expectedMeaning1, expectedMeaning2))
 
-      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe Some(expected)
+      dictionary.getDefinition(item).value shouldBe Some(expected)
 
     }
 
@@ -96,9 +100,10 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
         examples = Seq("the sketch was so largely drawn that you could see it from the back row"),
         synonyms = Seq.empty
       )
+      val item = LexicalItem.SingleWord(generate[Token.Word].copy(lemma = word, partOfSpeech = PartOfSpeech.Adverb))
       val expected = DictionaryEntry(Seq(expectedMeaning1, expectedMeaning2))
 
-      dictionary.getDefinition(word, Some(PartOfSpeech.Adverb)).value shouldBe Some(expected)
+      dictionary.getDefinition(item).value shouldBe Some(expected)
 
     }
 
@@ -110,24 +115,21 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
         examples = Seq.empty,
         synonyms = Seq("astir")
       )
+      val item = LexicalItem.SingleWord(generate[Token.Word].copy(lemma = word, partOfSpeech = PartOfSpeech.Adjective))
       val expected = DictionaryEntry(Seq(expectedMeaning))
 
-      dictionary.getDefinition(word, Some(PartOfSpeech.Adjective)).value shouldBe Some(expected)
+      dictionary.getDefinition(item).value shouldBe Some(expected)
 
-    }
-
-    "return None for MWE as one string" in {
-      val word = w"a day late and a dollar short"
-      val existedWords = word.split(" ").map(_.taggedWith[WordStrTag])
-      dictionary.getDefinition(existedWords, partOfSpeech = None).value shouldBe 'nonEmpty
-      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe None
     }
 
     "return None for nonexistent key" in {
       val word = w"nonexistent"
       val words = Seq(w"non", w"existent")
-      dictionary.getDefinition(word, partOfSpeech = None).value shouldBe None
-      dictionary.getDefinition(words, partOfSpeech = None).value shouldBe None
+      val singleItem = LexicalItem.SingleWord(generate[Token.Word].copy(lemma = word))
+      val tokens = Seq.tabulate(words.size)(i => generate[Token.Word].copy(lemma = words(i)))
+      val multiItem = LexicalItem.MultiWordExpression(tokens)
+      dictionary.getDefinition(singleItem).value shouldBe None
+      dictionary.getDefinition(multiItem).value shouldBe None
     }
 
   }

@@ -13,10 +13,6 @@ case class LexicalItemGroup(items: Seq[LexicalItem],
                             definition: DictionaryEntry) {
 
   // TODO: get rid of Exceptions here
-  require(
-    items.map(i => (i.lemmas, i.partsOfSpeech)).toSet.size == 1,
-    "Lexical item group should contain items with the same lemma and part of speech"
-  )
   require(items.nonEmpty, "items should be non empty")
 
 }

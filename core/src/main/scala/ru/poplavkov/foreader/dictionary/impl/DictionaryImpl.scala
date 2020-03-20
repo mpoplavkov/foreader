@@ -2,9 +2,8 @@ package ru.poplavkov.foreader.dictionary.impl
 
 import cats.Applicative
 import cats.data.OptionT
-import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry, DictionaryMap}
-import ru.poplavkov.foreader.text.PartOfSpeech
+import ru.poplavkov.foreader.text.LexicalItem
 
 import scala.language.higherKinds
 
@@ -13,11 +12,10 @@ import scala.language.higherKinds
   *
   * @author mpoplavkov
   */
-class MapDictionaryImpl[F[_] : Applicative](map: DictionaryMap) extends Dictionary[F] {
+class DictionaryImpl[F[_] : Applicative](map: DictionaryMap) extends Dictionary[F] {
 
-  override protected def getDefinitionInternal(words: Seq[WordStr],
-                                               partOfSpeech: Option[PartOfSpeech]): OptionT[F, DictionaryEntry] =
-    (map.get(words), partOfSpeech) match {
+  override def getDefinition(lexicalItem: LexicalItem): OptionT[F, DictionaryEntry] =
+    (map.get(lexicalItem.lemmas), lexicalItem.partsOfSpeech.headOption) match {
       case (None, _) =>
         OptionT.none
       case (Some(entry), None) =>

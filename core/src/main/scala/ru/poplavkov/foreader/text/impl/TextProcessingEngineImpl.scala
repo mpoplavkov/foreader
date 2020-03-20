@@ -7,9 +7,8 @@ import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
-import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader._
-import ru.poplavkov.foreader.dictionary.Dictionary
+import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
 import ru.poplavkov.foreader.text._
 import ru.poplavkov.foreader.text.filter.{LexicalItemFilter, LexicalItemGroupFilter}
 
@@ -29,9 +28,13 @@ class TextProcessingEngineImpl[F[_] : Monad](tokenExtractor: TokenExtractor[F],
     for {
       allLexicalItems <- extractAllLexicalItems(text)
       filtered = lexicalItemFilter.filterItems(allLexicalItems)
-      grouped = filtered.groupBy(item => (item.partsOfSpeech, item.lemmas))
-      groups <- grouped.toList.traverse { case ((pos, lemmas), items) =>
-        toLexicalItemGroup(items, pos, lemmas).value
+      itemsWithDefOpt <- filtered.toList.traverse { item =>
+        dictionary.getDefinition(item).value.map(entry => (item, entry))
+      }
+      itemsWithDef = itemsWithDefOpt.collect { case (item, Some(d)) => (item, d) }
+      grouped = itemsWithDef.groupBy(_._2).mapValues(_.map(_._1))
+      groups <- grouped.toList.traverse { case (entry, items) =>
+        toLexicalItemGroup(entry, items).value
       }.map(_.flatten)
     } yield {
       filter.filterGroups(groups)
@@ -42,14 +45,11 @@ class TextProcessingEngineImpl[F[_] : Monad](tokenExtractor: TokenExtractor[F],
         .toSeq
     }
 
-  // TODO: filter definitions by part of speech
-  private def toLexicalItemGroup(items: Seq[LexicalItem],
-                                 pos: Seq[PartOfSpeech],
-                                 lemmas: Seq[WordStr]): OptionT[F, LexicalItemGroup] =
+  private def toLexicalItemGroup(dictEntry: DictionaryEntry,
+                                 items: Seq[LexicalItem]): OptionT[F, LexicalItemGroup] =
     for {
       level <- levelDeterminator.determineLevel(items.head).orElse(OptionT.pure(LexicalItemLevel.C2))
-      definition <- dictionary.getDefinition(lemmas, pos.headOption)
-    } yield LexicalItemGroup(items, level, definition)
+    } yield LexicalItemGroup(items, level, dictEntry)
 
   private def extractAllLexicalItems(text: TextRepresentation[F]): F[Seq[LexicalItem]] = {
     text.next.value.flatMap {

@@ -1,11 +1,10 @@
-package ru.poplavkov.foreader.dictionary.wordset
+package ru.poplavkov.foreader.dictionary.impl
 
 import cats.Id
 import com.softwaremill.tagging._
 import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.Globals.{WordStr, WordStrTag}
 import ru.poplavkov.foreader.dictionary.MweSet
-import ru.poplavkov.foreader.dictionary.impl.MapMweSetImpl
 
 /**
   * Spec for [[MweSet]] based on the wordset dictionary

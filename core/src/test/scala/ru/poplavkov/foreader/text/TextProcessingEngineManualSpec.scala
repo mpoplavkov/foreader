@@ -8,7 +8,7 @@ import cats.syntax.functor._
 import org.scalatest.Ignore
 import ru.poplavkov.foreader.FileUtil._
 import ru.poplavkov.foreader.SpecBase.getResourcePath
-import ru.poplavkov.foreader.dictionary.impl.{MapDictionaryImpl, MapMweSetImpl}
+import ru.poplavkov.foreader.dictionary.impl.{DictionaryImpl, MapMweSetImpl}
 import ru.poplavkov.foreader.dictionary.wordset.WordsetDictionaryMapExtractor
 import ru.poplavkov.foreader.text.empty.EmptyLevelDeterminator
 import ru.poplavkov.foreader.text.filter.empty.EmptyLexicalItemGroupFilter
@@ -26,7 +26,7 @@ import scala.language.higherKinds
 @Ignore
 class TextProcessingEngineManualSpec extends SpecBase {
 
-  def getEngine[F[+_] : Sync]: F[TextProcessingEngine[F]] = {
+  def getEngine[F[+ _] : Sync]: F[TextProcessingEngine[F]] = {
     val extractor = new WordsetDictionaryMapExtractor[F](
       pathToWordsetDictionary = getResourcePath("/books/.local/wordset")
     )
@@ -35,7 +35,7 @@ class TextProcessingEngineManualSpec extends SpecBase {
       mweMap <- extractor.extractMweMap
 
       mweSet = new MapMweSetImpl[F](mweMap)
-      dictionary = new MapDictionaryImpl[F](dictMap)
+      dictionary = new DictionaryImpl[F](dictMap)
 
       tokenExtractor = new CoreNlpTokenExtractor[F](Language.English)
       stopPhrasesFilter = new StopwordsLexicalItemFilter(

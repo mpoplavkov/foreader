@@ -11,7 +11,7 @@ trait LoggedLexicalItemGroupFilter extends LexicalItemGroupFilter with Logging {
 
   abstract override def filter(group: LexicalItemGroup): Boolean =
     super.filter(group).logged("filter", Map("group" -> group)) {
-      case false => s"filtered group with headOpt item = `${group.items.headOption}`"
+      case false => "filtered this group"
     }
 
 }

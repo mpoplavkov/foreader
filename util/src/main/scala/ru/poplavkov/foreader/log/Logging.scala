@@ -28,17 +28,6 @@ trait Logging extends StrictLogging {
       case None => loggingMethod(level)(msg)
     }
 
-  private[log] def defaultLogMsg[T]: PartialFunction[T, String] = {
-    case value => s"successfully returned $value"
-  }
-
-  private[log] def methodWithArgs(method: String, args: Map[String, Any]): String = {
-    val argsStr = args
-      .map { case (name, value) => s"$name=$value" }
-      .mkString(",")
-    s"$method($argsStr)"
-  }
-
   //noinspection ConvertibleToMethodValue
   private def loggingMethod(level: LogLevel): String => Unit =
     level match {
@@ -62,6 +51,17 @@ trait Logging extends StrictLogging {
 }
 
 object Logging {
+
+  private[log] def defaultLogMsg[T]: PartialFunction[T, String] = {
+    case value => s"successfully returned $value"
+  }
+
+  private[log] def methodWithArgs(method: String, args: Map[String, Any]): String = {
+    val argsStr = args
+      .map { case (name, value) => s"$name=$value" }
+      .mkString(",")
+    s"$method($argsStr)"
+  }
 
   sealed trait LogLevel extends EnumEntry
 

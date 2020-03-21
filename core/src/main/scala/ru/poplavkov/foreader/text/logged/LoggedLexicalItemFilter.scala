@@ -10,6 +10,6 @@ import ru.poplavkov.foreader.text.filter.LexicalItemFilter
 trait LoggedLexicalItemFilter extends LexicalItemFilter with Logging {
   abstract override def filter(lexicalItem: LexicalItem): Boolean =
     super.filter(lexicalItem).logged("filter", Map("lexicalItem" -> lexicalItem)) {
-      case false => s"filtered this item"
+      case false => "filtered this item"
     }
 }

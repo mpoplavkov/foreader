@@ -1,6 +1,6 @@
-package ru.poplavkov.foreader.text.logging
+package ru.poplavkov.foreader.text.logged
 
-import ru.poplavkov.foreader.Logging
+import ru.poplavkov.foreader.log.Logging
 import ru.poplavkov.foreader.text.LexicalItem
 import ru.poplavkov.foreader.text.filter.LexicalItemFilter
 

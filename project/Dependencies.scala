@@ -11,6 +11,7 @@ object Dependencies {
   private val EnumeratumVersion = "1.5.15"
   private val StanfordCoreNlpVersion = "3.9.2"
   private val LogbackVersion = "1.2.3"
+  private val ScalaLoggingVersion = "3.9.2"
 
   // test
   private val ScalatestVersion = "3.1.0"
@@ -32,7 +33,8 @@ object Dependencies {
   )
 
   val logging = Seq(
-    "ch.qos.logback" % "logback-classic" % LogbackVersion
+    "ch.qos.logback" % "logback-classic" % LogbackVersion,
+    "com.typesafe.scala-logging" %% "scala-logging" % ScalaLoggingVersion
   )
 
   val enumeratum = Seq(

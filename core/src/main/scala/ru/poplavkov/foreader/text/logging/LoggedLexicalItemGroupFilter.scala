@@ -10,7 +10,7 @@ import ru.poplavkov.foreader.text.filter.LexicalItemGroupFilter
 trait LoggedLexicalItemGroupFilter extends LexicalItemGroupFilter with Logging {
 
   abstract override def filter(group: LexicalItemGroup): Boolean =
-    super.filter(group).logged("filter") {
+    super.filter(group).logged("filter", Map("group" -> group)) {
       case false => s"filtered group with headOpt item = `${group.items.headOption}`"
     }
 

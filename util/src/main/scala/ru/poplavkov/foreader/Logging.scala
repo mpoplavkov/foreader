@@ -1,10 +1,13 @@
 package ru.poplavkov.foreader
 
+import cats.ApplicativeError
 import com.typesafe.scalalogging.StrictLogging
 import enumeratum._
-import ru.poplavkov.foreader.Logging.LogLevel
+import ru.poplavkov.foreader.Logging.{LogLevel, _}
 
 import scala.collection.immutable
+import scala.language.higherKinds
+import scala.util.control.NonFatal
 
 /**
   * @author mpoplavkov
@@ -12,13 +15,26 @@ import scala.collection.immutable
 trait Logging extends StrictLogging {
 
   implicit class Logged[T](val value: T) {
-    def logged(method: String, level: LogLevel = LogLevel.Debug)
-              (toMsg: PartialFunction[T, String]): T = {
+    def logged(method: String, args: Map[String, Any], level: LogLevel = LogLevel.Debug)
+              (toMsg: PartialFunction[T, String] = defaultLogMsg): T = {
       if (toMsg.isDefinedAt(value)) {
-        log(s"$method: ${toMsg(value)}", cause = None, level)
+        log(s"${methodWithArgs(method, args)}: ${toMsg(value)}", cause = None, level)
       }
       value
     }
+  }
+
+  import cats.implicits._
+
+  implicit class LoggedF[F[_], T](val ft: F[T]) {
+    def loggedF(method: String, args: Map[String, Any], level: LogLevel = LogLevel.Debug)
+               (toMsg: PartialFunction[T, String] = defaultLogMsg)
+               (implicit applicativeErr: ApplicativeError[F, Throwable]): F[T] =
+      ft.map(_.logged(method, args, level)(toMsg))
+        .onError { case NonFatal(e) =>
+          log(s"${methodWithArgs(method, args)} failed", cause = Some(e), LogLevel.Error)
+          ().pure[F]
+        }
   }
 
   private def log(msg: => String, cause: Option[Throwable], level: LogLevel): Unit =
@@ -50,6 +66,17 @@ trait Logging extends StrictLogging {
 }
 
 object Logging {
+
+  private def defaultLogMsg[T]: PartialFunction[T, String] = {
+    case value => s"successfully returned $value"
+  }
+
+  private def methodWithArgs(method: String, args: Map[String, Any]): String = {
+    val argsStr = args
+      .map { case (name, value) => s"$name=$value" }
+      .mkString(",")
+    s"$method($argsStr)"
+  }
 
   sealed trait LogLevel extends EnumEntry
 

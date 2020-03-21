@@ -234,7 +234,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
     }
 
 
-
   }
 
   private def genWords(min: Int, max: Int): Seq[Token.Word] = {

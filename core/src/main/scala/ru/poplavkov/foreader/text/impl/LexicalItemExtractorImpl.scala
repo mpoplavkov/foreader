@@ -14,7 +14,7 @@ import scala.language.higherKinds
 /**
   * @author mpoplavkov
   */
-class LexicalItemExtractorImpl[F[+_] : Monad](mweSet: MweSet[F])
+class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F])
   extends LexicalItemExtractor[F] {
 
   override def lexicalItemsFromTokens(tokens: Seq[Token]): F[Seq[LexicalItem]] =

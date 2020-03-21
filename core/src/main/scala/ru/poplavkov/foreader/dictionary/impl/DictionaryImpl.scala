@@ -15,7 +15,7 @@ import scala.language.higherKinds
 class DictionaryImpl[F[_] : Applicative](map: DictionaryMap) extends Dictionary[F] {
 
   override def getDefinition(lexicalItem: LexicalItem): OptionT[F, DictionaryEntry] =
-    // TODO: get rid of the Option
+  // TODO: get rid of the Option
     (map.get(lexicalItem.lemmas), lexicalItem.partsOfSpeech.headOption) match {
       case (None, _) =>
         OptionT.none

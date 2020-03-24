@@ -13,6 +13,8 @@ object Dependencies {
   private val StanfordCoreNlpVersion = "3.9.2"
   private val LogbackVersion = "1.2.3"
   private val ScalaLoggingVersion = "3.9.2"
+  private val ExtjwnlVersion = "2.0.2"
+  private val ExtjwnlDataVersion = "1.2"
   private val SmileVersion = "2.2.2"
 
   // test
@@ -32,6 +34,11 @@ object Dependencies {
   val stanford = Seq(
     "edu.stanford.nlp" % "stanford-corenlp" % StanfordCoreNlpVersion,
     "edu.stanford.nlp" % "stanford-corenlp" % StanfordCoreNlpVersion classifier "models-english"
+  )
+
+  val wordnet = Seq(
+    "net.sf.extjwnl" % "extjwnl" % ExtjwnlVersion,
+    "net.sf.extjwnl" % "extjwnl-data-wn31" % ExtjwnlDataVersion
   )
 
   val logging = Seq(

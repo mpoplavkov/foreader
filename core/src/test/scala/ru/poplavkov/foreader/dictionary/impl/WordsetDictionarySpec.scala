@@ -21,6 +21,7 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
     "extract dictionary entry for single word" in {
       val word = w"lopsidedly"
       val expectedMeaning = Meaning(
+        id = "c2ab1fda0c",
         definition = "in a crooked lopsided manner",
         partOfSpeech = Some(PartOfSpeech.Adverb),
         examples = Seq("I smiled lopsidedly."),
@@ -37,6 +38,7 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
     "extract dictionary entry for multi word expression" in {
       val words = Seq(w"a", w"day", w"late", w"and", w"a", w"dollar", w"short")
       val expectedMeaning = Meaning(
+        id = "ead341c72d",
         definition = "action taken too late and too feeble to be of any use",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq("The student's effort was a day late and a dollar short."),
@@ -53,6 +55,7 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
     "extract dictionary entry without synonyms and examples" in {
       val word = w"lastingly"
       val expectedMeaning = Meaning(
+        id = "991677c80a",
         definition = "in an enduring or permanent manner",
         partOfSpeech = Some(PartOfSpeech.Adverb),
         examples = Seq.empty,
@@ -68,12 +71,14 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
     "extract dictionary entry with multiple meanings" in {
       val word = w"largely"
       val expectedMeaning1 = Meaning(
+        id = "9faec38240",
         definition = "in large part",
         partOfSpeech = Some(PartOfSpeech.Adverb),
         examples = Seq.empty,
         synonyms = Seq("mostly", "for the most part")
       )
       val expectedMeaning2 = Meaning(
+        id = "6801638f32",
         definition = "on a large scale",
         partOfSpeech = Some(PartOfSpeech.Adverb),
         examples = Seq("the sketch was so largely drawn that you could see it from the back row"),
@@ -89,12 +94,14 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
     "extract dictionary entry with multiple meanings with specified part of speech" in {
       val word = w"largely"
       val expectedMeaning1 = Meaning(
+        id = "9faec38240",
         definition = "in large part",
         partOfSpeech = Some(PartOfSpeech.Adverb),
         examples = Seq.empty,
         synonyms = Seq("mostly", "for the most part")
       )
       val expectedMeaning2 = Meaning(
+        id = "6801638f32",
         definition = "on a large scale",
         partOfSpeech = Some(PartOfSpeech.Adverb),
         examples = Seq("the sketch was so largely drawn that you could see it from the back row"),
@@ -110,6 +117,7 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
     "extract dictionary entry with only specified part of speech" in {
       val word = w"about"
       val expectedMeaning = Meaning(
+        id = "2edf9a8823",
         definition = "on the move",
         partOfSpeech = Some(PartOfSpeech.Adjective),
         examples = Seq.empty,
@@ -123,8 +131,8 @@ class WordsetDictionarySpec extends WordsetSpecBase[Id] {
     }
 
     "return None for nonexistent key" in {
-      val word = w"nonexistent"
-      val words = Seq(w"non", w"existent")
+      val word = w"nonexistentkey"
+      val words = Seq(w"non", w"existent", w"key")
       val singleItem = LexicalItem.SingleWord(generate[Token.Word].copy(lemma = word))
       val tokens = Seq.tabulate(words.size)(i => generate[Token.Word].copy(lemma = words(i)))
       val multiItem = LexicalItem.MultiWordExpression(tokens)

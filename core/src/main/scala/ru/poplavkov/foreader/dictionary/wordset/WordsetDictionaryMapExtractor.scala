@@ -70,8 +70,8 @@ object WordsetDictionaryMapExtractor {
 
     for {
       obj <- json.asObject
-      definition <- obj("def")
-      defString <- definition.asString
+      id <- obj("id").flatMap(_.asString)
+      definition <- obj("def").flatMap(_.asString)
     } yield {
       val partOfSpeechOpt = obj("speech_part")
         .flatMap(_.asString)
@@ -88,7 +88,8 @@ object WordsetDictionaryMapExtractor {
         .flatMap(_.asString)
 
       DictionaryEntry.Meaning(
-        definition = defString,
+        id = id,
+        definition = definition,
         partOfSpeech = partOfSpeechOpt,
         examples = examples,
         synonyms = synonyms

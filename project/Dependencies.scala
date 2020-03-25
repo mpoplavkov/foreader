@@ -43,7 +43,8 @@ object Dependencies {
 
   val json = Seq(
     "io.circe" %% "circe-core" % CirceVersion,
-    "io.circe" %% "circe-parser" % CirceVersion
+    "io.circe" %% "circe-parser" % CirceVersion,
+    "io.circe" %% "circe-generic" % CirceVersion
   )
 
   val cats = Seq(

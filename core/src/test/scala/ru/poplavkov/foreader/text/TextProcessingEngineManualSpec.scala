@@ -14,7 +14,7 @@ import ru.poplavkov.foreader.text.empty.EmptyLevelDeterminator
 import ru.poplavkov.foreader.text.filter.empty.EmptyLexicalItemGroupFilter
 import ru.poplavkov.foreader.text.filter.impl.{CompositeLexicalItemFilter, StopwordsLexicalItemFilter}
 import ru.poplavkov.foreader.text.impl._
-import ru.poplavkov.foreader.text.logging.LoggedLexicalItemFilter
+import ru.poplavkov.foreader.text.logged.LoggedLexicalItemFilter
 import ru.poplavkov.foreader.{Card, Language, SpecBase}
 
 import scala.language.higherKinds

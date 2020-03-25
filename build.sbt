@@ -22,3 +22,6 @@ lazy val core = project
     libraryDependencies ++= Dependencies.stanford ++ Dependencies.json,
     resolvers += Resolver.sonatypeRepo("releases")
   ).dependsOn(model % "test->test;compile->compile", util)
+
+lazy val scripts = project
+  .dependsOn(core)

@@ -1,7 +1,6 @@
 package ru.poplavkov.foreader
 
 import java.io.{File, FileOutputStream}
-import java.nio.file.Path
 import java.time.Instant
 
 import cats.effect.{ExitCode, IO, IOApp, Resource, Sync}
@@ -28,13 +27,13 @@ class ContextVectorsCalculator[F[_] : Sync] {
   private val WorkDir: File = new File(s"$LocalDir/context_vectors_$id")
   WorkDir.mkdir()
 
-  def calculate(pathToVectors: Path,
+  def calculate(vectorsFile: File,
                 corpus: File,
                 contextLen: Int = 3,
                 language: Language = Language.English): F[Unit] = {
     val tokenExtractor = new CoreNlpTokenExtractor[F](language)
     for {
-      vectorsMap <- VectorsExtractor.extractVectors[F](pathToVectors)
+      vectorsMap <- VectorsExtractor.extractVectors[F](vectorsFile.toPath)
       _ <- Sync[F].delay(println("Vectors extracted"))
       files = corpus.listFiles.toList
       _ <- files.traverse(calculateForOneFile(_, tokenExtractor, contextLen, vectorsMap, language))
@@ -67,7 +66,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
         words(wordInd).toString -> VectorUtil.avgVector(vectorsMap.dimension, leftVectors ++ rightVectors)
       }.groupBy(_._1).mapValues(_.map(_._2)))
 
-      _ <- Sync[F].delay(println(s"Vectors created. Flushing to the `$LocalDir/${outFile.getName}`"))
+      _ <- Sync[F].delay(println(s"Vectors created. Flushing to the `${outFile.getAbsolutePath}`"))
 
       json = map.asJson
       resource = Resource.fromAutoCloseable(Sync[F].delay {
@@ -88,10 +87,10 @@ object ContextVectorsCalculator extends IOApp {
 
   private val calculator = new ContextVectorsCalculator[IO]
 
-  private val VectorsPath: Path = new File(s"$LocalDir/vectors.txt").toPath
-  private val CorpusDir: File = new File(s"$LocalDir/corpus")
+  private val VectorsFile = new File(s"$LocalDir/vectors.txt")
+  private val CorpusDir = new File(s"$LocalDir/corpus")
 
   override def run(args: List[String]): IO[ExitCode] =
-    calculator.calculate(VectorsPath, CorpusDir).map(_ => ExitCode.Success)
+    calculator.calculate(VectorsFile, CorpusDir).map(_ => ExitCode.Success)
 
 }

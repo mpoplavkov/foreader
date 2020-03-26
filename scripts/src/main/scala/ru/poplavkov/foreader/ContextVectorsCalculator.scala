@@ -85,7 +85,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
     val combinedMap = dir.listFiles.map { file =>
       val content = FileUtil.readFile(file.toPath)
       decode[Map[String, Seq[MathVector]]](content).right.get
-    }.reduce(mergeMaps[String, Seq[MathVector]](_ ++ _))
+    }.reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
 
     for {
       _ <- Sync[F].delay(println("Combining vector files"))
@@ -98,14 +98,6 @@ class ContextVectorsCalculator[F[_] : Sync] {
     Resource.fromAutoCloseable(Sync[F].delay(new FileOutputStream(file))).use { os =>
       Sync[F].delay(os.write(toWrite.getBytes))
     }
-
-  private def mergeMaps[K, V](f: (V, V) => V)(map1: Map[K, V], map2: Map[K, V]): Map[K, V] = {
-    val combined = map1.map { case (k, v1) =>
-      val newValue = map2.get(k).map(f(v1, _)).getOrElse(v1)
-      k -> newValue
-    }
-    map2 ++ combined
-  }
 
   private def childFile(dir: File, childName: String): File =
     dir.toPath.resolve(childName).toFile

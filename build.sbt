@@ -10,7 +10,7 @@ lazy val util = project
   .settings(
     libraryDependencies ++= Dependencies.logging ++ Dependencies.cats
   )
-  .dependsOn(model)
+  .dependsOn(model % "test->test;compile->compile")
 
 lazy val model = project
   .settings(

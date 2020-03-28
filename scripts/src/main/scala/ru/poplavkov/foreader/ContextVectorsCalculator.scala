@@ -8,7 +8,6 @@ import cats.implicits._
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
-import ru.poplavkov.foreader.ContextVectorsCalculator.LocalDir
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
@@ -37,7 +36,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
     val tokenExtractor = new CoreNlpTokenExtractor[F](language)
     for {
       vectorsMap <- VectorsExtractor.extractVectors[F](vectorsFile.toPath)
-      _ <- Sync[F].delay(println("Vectors extracted"))
+      _ <- info("Vectors extracted")
       files = corpus.listFiles.toList
       _ <- files.traverse(calculateForOneFile(_, SeparateFilesDir, tokenExtractor, contextLen, vectorsMap, language))
       _ <- combineVectorFiles(SeparateFilesDir, FileUtil.childFile(WorkDir, "context_vectors.txt"))
@@ -55,50 +54,57 @@ class ContextVectorsCalculator[F[_] : Sync] {
     val outFile = FileUtil.childFile(targetDir, file.getName)
     val fileSizeMb = file.length.toFloat / 1024 / 1024
     for {
-      _ <- Sync[F].delay(println(f"Start processing file of size $fileSizeMb%1.2fmb: `${file.getName}`"))
+      _ <- info(f"Start processing file of size $fileSizeMb%1.2fmb: `${file.getName}`")
 
       tokens <- tokenExtractor.extract(text)
 
-      words = tokens.collect {
-        case Token.Word(_, _, lemma, _) => lemma
+      wordsWithPos = tokens.collect {
+        case Token.Word(_, _, lemma, pos) => WordWithPos(lemma, pos)
       }
 
-      map <- Sync[F].delay(words.indices.map { wordInd =>
-        val fromLeft = (wordInd - contextLen) max 0
-        val toRight = (wordInd + contextLen) min (words.length - 1)
-        val leftVectors = (fromLeft until wordInd).map(words.apply).flatMap(vectorsMap.getVector)
-        val rightVectors = (toRight until wordInd by -1).map(words.apply).flatMap(vectorsMap.getVector)
-        words(wordInd).toString -> VectorUtil.avgVector(vectorsMap.dimension, leftVectors ++ rightVectors)
-      }.groupBy(_._1).mapValues(_.map(_._2)))
+      map <- findContextVectors(wordsWithPos, vectorsMap, contextLen)
 
-      _ <- Sync[F].delay(println(s"Vectors created. Flushing to the `${outFile.getAbsolutePath}`"))
+      _ <- info(s"Vectors created. Flushing to the `${outFile.getAbsolutePath}`")
 
       json = map.asJson
       _ <- FileUtil.writeToFile(outFile, json.spaces2)
 
-      _ <- Sync[F].delay(println(s"Processed ${file.getName}"))
+      _ <- info(s"Processed ${file.getName}")
     } yield ()
 
+  }
+
+  private def findContextVectors(wordsWithPos: Seq[WordWithPos],
+                                 vectorsMap: VectorsMap,
+                                 contextLen: Int): F[WordToVectorsMap] = Sync[F].delay {
+    def vectorsByIndices(indices: Seq[Int]): Seq[MathVector] =
+      indices.map(wordsWithPos.apply).map(_.word).flatMap(vectorsMap.getVector)
+
+    wordsWithPos.indices.map { wordInd =>
+      val fromLeft = (wordInd - contextLen) max 0
+      val toRight = (wordInd + contextLen) min (wordsWithPos.length - 1)
+      val leftVectors = vectorsByIndices(fromLeft until wordInd)
+      val rightVectors = vectorsByIndices(toRight until wordInd by -1)
+      wordsWithPos(wordInd) -> VectorUtil.avgVector(vectorsMap.dimension, leftVectors ++ rightVectors)
+    }.groupBy(_._1).mapValues(_.map(_._2))
   }
 
   private def combineVectorFiles(dir: File, outFile: File): F[Unit] = {
     val combinedMap = dir.listFiles.map { file =>
       val content = FileUtil.readFile(file.toPath)
-      decode[Map[String, Seq[MathVector]]](content).right.get
+      decode[WordToVectorsMap](content).right.get
     }.reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
 
     for {
-      _ <- Sync[F].delay(println("Combining vector files"))
+      _ <- info("Combining vector files")
       _ <- FileUtil.writeToFile(outFile, combinedMap.asJson.spaces2)
-      _ <- Sync[F].delay(println("Finished"))
+      _ <- info("Finished")
     } yield ()
   }
 
 }
 
 object ContextVectorsCalculator extends IOApp {
-
-  private val LocalDir = ".local"
 
   private val calculator = new ContextVectorsCalculator[IO]
 

@@ -24,15 +24,27 @@ object VectorUtil {
   /**
     * K-Means clustering
     * Uses squared Euclidean distance
+    * Will find `k` cluster centroids iff distinct vectors size >= `k`
     *
     * @param k       desired number of clusters
     * @param vectors vectors to cluster
-    * @return sequence of cluster centroids
+    * @return sequence of cluster centroids or `None` if it couldn't find `k` clusters
     */
-  def kmeans(k: Int, vectors: Seq[MathVector]): Seq[MathVector] = {
-    val means = clustering.kmeans(vectors, k)
-    means.centroids.map(doublesArray2MathVector)
-  }
+  def kmeans(k: Int, vectors: Seq[MathVector]): Option[Seq[MathVector]] =
+    if (vectors.isEmpty) {
+      None
+    } else if (k == 1) {
+      Some(Seq(avgVector(vectors.head.dimension, vectors)))
+    } else {
+      val means = clustering.kmeans(vectors, k)
+      val labels = means.y
+      if (labels.toSet.size < k) {
+        // Couldn't find `k` clusters
+        None
+      } else {
+        Some(means.centroids.map(doublesArray2MathVector))
+      }
+    }
 
   private def doublesArray2MathVector(array: Array[Double]): MathVector =
     MathVector(coordinates = array.map(_.toFloat))

@@ -27,6 +27,12 @@ class VectorUtilSpec extends SpecBase {
 
   private val cases = Seq(
     TestCase(
+      clustersNum = 1,
+      expectedCentroids = Seq(
+        VectorUtil.avgVector(dimension = 2, clusters(1) ++ clusters(2) ++ clusters(3) ++ clusters(4))
+      )
+    ),
+    TestCase(
       clustersNum = 2,
       expectedCentroids = Seq(
         VectorUtil.avgVector(dimension = 2, clusters(1) ++ clusters(2)),
@@ -47,7 +53,7 @@ class VectorUtilSpec extends SpecBase {
   "VectorUtil.kmeans" should {
     cases.foreach { case TestCase(clustersNum, expectedCentroids) =>
       s"find $clustersNum clusters" in {
-        val centroids = VectorUtil.kmeans(clustersNum, vectors)
+        val centroids = VectorUtil.kmeans(clustersNum, vectors).get
         val similarityMap: Map[MathVector, Seq[MathVector]] =
           expectedCentroids.map { expected =>
             expected -> centroids.filter(areSimilar(_, expected))

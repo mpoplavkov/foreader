@@ -26,4 +26,10 @@ object FileUtil {
   def childFile(dir: File, childName: String): File =
     dir.toPath.resolve(childName).toFile
 
+  /**
+    * Returns file with the name `brotherName` at the same directory
+    */
+  def brotherFile(file: File, brotherName: String): File =
+    childFile(file.getParentFile, brotherName)
+
 }

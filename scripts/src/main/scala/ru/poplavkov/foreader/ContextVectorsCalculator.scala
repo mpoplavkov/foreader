@@ -8,7 +8,6 @@ import cats.implicits._
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
-import ru.poplavkov.foreader.ContextVectorsCalculator.LocalDir
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
@@ -37,7 +36,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
     val tokenExtractor = new CoreNlpTokenExtractor[F](language)
     for {
       vectorsMap <- VectorsExtractor.extractVectors[F](vectorsFile.toPath)
-      _ <- Sync[F].delay(println("Vectors extracted"))
+      _ <- info("Vectors extracted")
       files = corpus.listFiles.toList
       _ <- files.traverse(calculateForOneFile(_, SeparateFilesDir, tokenExtractor, contextLen, vectorsMap, language))
       _ <- combineVectorFiles(SeparateFilesDir, FileUtil.childFile(WorkDir, "context_vectors.txt"))
@@ -55,7 +54,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
     val outFile = FileUtil.childFile(targetDir, file.getName)
     val fileSizeMb = file.length.toFloat / 1024 / 1024
     for {
-      _ <- Sync[F].delay(println(f"Start processing file of size $fileSizeMb%1.2fmb: `${file.getName}`"))
+      _ <- info(f"Start processing file of size $fileSizeMb%1.2fmb: `${file.getName}`")
 
       tokens <- tokenExtractor.extract(text)
 
@@ -71,12 +70,12 @@ class ContextVectorsCalculator[F[_] : Sync] {
         words(wordInd).toString -> VectorUtil.avgVector(vectorsMap.dimension, leftVectors ++ rightVectors)
       }.groupBy(_._1).mapValues(_.map(_._2)))
 
-      _ <- Sync[F].delay(println(s"Vectors created. Flushing to the `${outFile.getAbsolutePath}`"))
+      _ <- info(s"Vectors created. Flushing to the `${outFile.getAbsolutePath}`")
 
       json = map.asJson
       _ <- FileUtil.writeToFile(outFile, json.spaces2)
 
-      _ <- Sync[F].delay(println(s"Processed ${file.getName}"))
+      _ <- info(s"Processed ${file.getName}")
     } yield ()
 
   }
@@ -88,17 +87,15 @@ class ContextVectorsCalculator[F[_] : Sync] {
     }.reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
 
     for {
-      _ <- Sync[F].delay(println("Combining vector files"))
+      _ <- info("Combining vector files")
       _ <- FileUtil.writeToFile(outFile, combinedMap.asJson.spaces2)
-      _ <- Sync[F].delay(println("Finished"))
+      _ <- info("Finished")
     } yield ()
   }
 
 }
 
 object ContextVectorsCalculator extends IOApp {
-
-  private val LocalDir = ".local"
 
   private val calculator = new ContextVectorsCalculator[IO]
 

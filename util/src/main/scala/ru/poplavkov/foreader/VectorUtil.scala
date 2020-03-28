@@ -29,10 +29,13 @@ object VectorUtil {
     * @param vectors vectors to cluster
     * @return sequence of cluster centroids
     */
-  def kmeans(k: Int, vectors: Seq[MathVector]): Seq[MathVector] = {
-    val means = clustering.kmeans(vectors, k)
-    means.centroids.map(doublesArray2MathVector)
-  }
+  def kmeans(k: Int, vectors: Seq[MathVector]): Seq[MathVector] =
+    if (k == 1) {
+      Seq(avgVector(vectors.head.dimension, vectors))
+    } else {
+      val means = clustering.kmeans(vectors, k)
+      means.centroids.map(doublesArray2MathVector)
+    }
 
   private def doublesArray2MathVector(array: Array[Double]): MathVector =
     MathVector(coordinates = array.map(_.toFloat))

@@ -7,6 +7,9 @@ sealed trait PartOfSpeech
 
 object PartOfSpeech {
 
+  def all: Set[PartOfSpeech] =
+    Set(Noun, Pronoun, Verb, Adjective, Adverb, Preposition, Conjunction, Interjection, Numeral, Other(""))
+
   case object Noun extends PartOfSpeech
 
   case object Pronoun extends PartOfSpeech

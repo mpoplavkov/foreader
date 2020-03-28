@@ -27,6 +27,12 @@ class VectorUtilSpec extends SpecBase {
 
   private val cases = Seq(
     TestCase(
+      clustersNum = 1,
+      expectedCentroids = Seq(
+        VectorUtil.avgVector(dimension = 2, clusters(1) ++ clusters(2) ++ clusters(3) ++ clusters(4))
+      )
+    ),
+    TestCase(
       clustersNum = 2,
       expectedCentroids = Seq(
         VectorUtil.avgVector(dimension = 2, clusters(1) ++ clusters(2)),

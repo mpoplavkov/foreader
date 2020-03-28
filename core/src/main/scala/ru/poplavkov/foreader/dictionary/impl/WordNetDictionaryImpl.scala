@@ -25,7 +25,7 @@ class WordNetDictionaryImpl[F[_] : Sync] extends Dictionary[F] {
           entryFromDictionary(word.partOfSpeech, word.lemma)
         case LexicalItem.MultiWordExpression(words, _) =>
           // searches entry for every pos in this MWE
-          words.toStream
+          words.view
             .map(_.partOfSpeech)
             .flatMap(entryFromDictionary(_, words.map(_.lemma).mkString(" ")))
             .headOption
@@ -38,8 +38,8 @@ class WordNetDictionaryImpl[F[_] : Sync] extends Dictionary[F] {
       indexWord <- Option(dict.getIndexWord(pos, lemma)).toSeq
       _ = indexWord.sortSenses()
       sense <- indexWord.getSenses.asScala
-      gloss = sense.getGloss
-      defsAndExamples = gloss.split("; ")
+      glossary = sense.getGloss
+      defsAndExamples = glossary.split("; ")
       (examplesWithQuotes, defs) = defsAndExamples.partition(_.startsWith("\""))
       examples = examplesWithQuotes.map(_.replaceAll("\"", ""))
       synonyms = sense.getWords.asScala.map(_.getLemma).filterNot(_ == lemma)

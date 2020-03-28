@@ -67,9 +67,10 @@ class WordNetDictionaryImplSpec extends SpecBase {
         synonyms = Seq.empty
       )
 
-      val tokens = Seq.tabulate(words.size) { i =>
-        generate[Token.Word].copy(lemma = words(i), partOfSpeech = PartOfSpeech.Noun)
-      }
+      val tokens = Seq(
+        generate[Token.Word].copy(lemma = words.head, partOfSpeech = PartOfSpeech.Adjective),
+        generate[Token.Word].copy(lemma = words(1), partOfSpeech = PartOfSpeech.Noun),
+      )
       val item = LexicalItem.MultiWordExpression(tokens)
 
       val expected = DictionaryEntry(Seq(expectedMeaning1, expectedMeaning2, expectedMeaning3))

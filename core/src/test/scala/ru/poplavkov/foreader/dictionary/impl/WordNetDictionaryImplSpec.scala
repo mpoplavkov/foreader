@@ -77,7 +77,7 @@ class WordNetDictionaryImplSpec extends SpecBase {
       dictionary.getDefinition(item).value.unsafeRunSync shouldBe Some(expected)
     }
 
-    "extract dictionary entry with meaning containing multiple definitions" in {
+    "extract dictionary entry with multiple examples" in {
       val word = w"book"
 
       val expectedMeaning1 = Meaning(

@@ -1,9 +1,9 @@
 package ru.poplavkov.foreader
 
-import java.io.{File, FileOutputStream}
+import java.io.File
 import java.time.Instant
 
-import cats.effect.{ExitCode, IO, IOApp, Resource, Sync}
+import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.implicits._
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -26,7 +26,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
 
   private val id = Instant.now.toEpochMilli
   private val WorkDir: File = new File(s"$LocalDir/context_vectors_$id")
-  private val SeparateFilesDir: File = childFile(WorkDir, "separate")
+  private val SeparateFilesDir: File = FileUtil.childFile(WorkDir, "separate")
   WorkDir.mkdir()
   SeparateFilesDir.mkdir()
 
@@ -40,7 +40,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
       _ <- Sync[F].delay(println("Vectors extracted"))
       files = corpus.listFiles.toList
       _ <- files.traverse(calculateForOneFile(_, SeparateFilesDir, tokenExtractor, contextLen, vectorsMap, language))
-      _ <- combineVectorFiles(SeparateFilesDir, childFile(WorkDir, "context_vectors.txt"))
+      _ <- combineVectorFiles(SeparateFilesDir, FileUtil.childFile(WorkDir, "context_vectors.txt"))
     } yield ()
 
   }
@@ -52,7 +52,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
                                   vectorsMap: VectorsMap,
                                   language: Language): F[Unit] = {
     val text = FileUtil.readFile(file.toPath)
-    val outFile = childFile(targetDir, file.getName)
+    val outFile = FileUtil.childFile(targetDir, file.getName)
     val fileSizeMb = file.length.toFloat / 1024 / 1024
     for {
       _ <- Sync[F].delay(println(f"Start processing file of size $fileSizeMb%1.2fmb: `${file.getName}`"))
@@ -74,7 +74,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
       _ <- Sync[F].delay(println(s"Vectors created. Flushing to the `${outFile.getAbsolutePath}`"))
 
       json = map.asJson
-      _ <- writeToFile(outFile, json.spaces2)
+      _ <- FileUtil.writeToFile(outFile, json.spaces2)
 
       _ <- Sync[F].delay(println(s"Processed ${file.getName}"))
     } yield ()
@@ -89,18 +89,10 @@ class ContextVectorsCalculator[F[_] : Sync] {
 
     for {
       _ <- Sync[F].delay(println("Combining vector files"))
-      _ <- writeToFile(outFile, combinedMap.asJson.spaces2)
+      _ <- FileUtil.writeToFile(outFile, combinedMap.asJson.spaces2)
       _ <- Sync[F].delay(println("Finished"))
     } yield ()
   }
-
-  private def writeToFile(file: File, toWrite: String): F[Unit] =
-    Resource.fromAutoCloseable(Sync[F].delay(new FileOutputStream(file))).use { os =>
-      Sync[F].delay(os.write(toWrite.getBytes))
-    }
-
-  private def childFile(dir: File, childName: String): File =
-    dir.toPath.resolve(childName).toFile
 
 }
 

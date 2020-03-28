@@ -3,6 +3,7 @@ import sbt._
 /**
   * @author mpoplavkov
   */
+//noinspection TypeAnnotation
 object Dependencies {
 
   private val SoftwaremillTaggingVersion = "2.2.1"
@@ -12,6 +13,7 @@ object Dependencies {
   private val StanfordCoreNlpVersion = "3.9.2"
   private val LogbackVersion = "1.2.3"
   private val ScalaLoggingVersion = "3.9.2"
+  private val SmileVersion = "2.2.2"
 
   // test
   private val ScalatestVersion = "3.1.0"
@@ -53,6 +55,10 @@ object Dependencies {
 
   val tagging = Seq(
     "com.softwaremill.common" %% "tagging" % SoftwaremillTaggingVersion
+  )
+
+  val smile = Seq(
+    "com.github.haifengl" %% "smile-scala" % SmileVersion
   )
 
 }

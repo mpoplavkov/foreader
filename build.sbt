@@ -8,7 +8,7 @@ scalaVersion := "2.12.7"
 
 lazy val util = project
   .settings(
-    libraryDependencies ++= Dependencies.logging ++ Dependencies.cats
+    libraryDependencies ++= Dependencies.logging ++ Dependencies.cats ++ Dependencies.smile
   )
   .dependsOn(model % "test->test;compile->compile")
 

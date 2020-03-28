@@ -19,7 +19,8 @@ case class DictionaryEntry(meanings: Seq[Meaning]) {
 
 object DictionaryEntry {
 
-  case class Meaning(definition: String,
+  case class Meaning(id: String,
+                     definition: String,
                      partOfSpeech: Option[PartOfSpeech],
                      examples: Seq[String],
                      synonyms: Seq[String])

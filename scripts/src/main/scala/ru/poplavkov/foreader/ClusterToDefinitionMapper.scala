@@ -24,7 +24,7 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
   private val dictionary = new WordNetDictionaryImpl[F]
 
   def createClusters(contextVectorsFile: File): F[Unit] = {
-    val outFile = FileUtil.childFile(contextVectorsFile.getParentFile, "clusters.txt")
+    val outFile = FileUtil.brotherFile(contextVectorsFile, "clusters.txt")
     val content = FileUtil.readFile(contextVectorsFile.toPath)
     val contextsByWord = decode[Map[String, Seq[MathVector]]](content).right.get
     val wordsCount = contextsByWord.size
@@ -42,9 +42,9 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
 
           for {
             meanings <- allDictionaryMeanings
-            centroids <- findCentroids(word, meanings.size, vectors)
+            centroidsOrErr <- findCentroids(word, meanings.size, vectors)
             _ <- if (ind % onePercent == 0) info(s"${ind / onePercent}%") else ().pure[F]
-          } yield centroids
+          } yield centroidsOrErr
         }
 
     for {

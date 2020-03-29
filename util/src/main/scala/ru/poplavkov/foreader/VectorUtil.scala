@@ -30,8 +30,10 @@ object VectorUtil {
     * @param vectors vectors to cluster
     * @return sequence of cluster centroids or `None` if it couldn't find `k` clusters
     */
-  def kmeans(k: Int, vectors: Seq[MathVector]): Option[Seq[MathVector]] = {
-    if (k == 1) {
+  def kmeans(k: Int, vectors: Seq[MathVector]): Option[Seq[MathVector]] =
+    if (vectors.isEmpty) {
+      None
+    } else if (k == 1) {
       Some(Seq(avgVector(vectors.head.dimension, vectors)))
     } else {
       val means = clustering.kmeans(vectors, k)
@@ -43,7 +45,6 @@ object VectorUtil {
         Some(means.centroids.map(doublesArray2MathVector))
       }
     }
-  }
 
   private def doublesArray2MathVector(array: Array[Double]): MathVector =
     MathVector(coordinates = array.map(_.toFloat))

@@ -12,21 +12,20 @@ case class WordWithPos(word: WordStr, pos: PartOfSpeech)
 
 object WordWithPos {
 
-  private val Delimiter = "#"
+  private val wordWithPosRegexp = "(.*)\\((.*)\\)".r
 
   implicit val keyEncoder: KeyEncoder[WordWithPos] = (value: WordWithPos) => {
     val WordWithPos(word, pos) = value
-    s"$word$Delimiter${PartOfSpeech.stringify(pos)}"
+    s"$word(${PartOfSpeech.stringify(pos)})"
   }
 
-  implicit val keyDecoder: KeyDecoder[WordWithPos] = (key: String) =>
-    key.split(Delimiter).toList match {
-      case word :: posStr :: Nil =>
-        PartOfSpeech.fromString(posStr).map { pos =>
-          WordWithPos(word.taggedWith, pos)
-        }
-      case _ =>
-        None
-    }
+  implicit val keyDecoder: KeyDecoder[WordWithPos] = {
+    case wordWithPosRegexp(word, posStr) =>
+      PartOfSpeech.fromString(posStr).map { pos =>
+        WordWithPos(word.taggedWith, pos)
+      }
+    case _ =>
+      None
+  }
 
 }

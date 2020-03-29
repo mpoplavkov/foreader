@@ -20,4 +20,7 @@ object CollectionUtil {
     map2 ++ combined
   }
 
+  def mergeMapsWithUniqueKeys[K, V](map1: Map[K, V], map2: Map[K, V]): Map[K, V] =
+    mergeMaps(map1, map2)((_, _) => throw new IllegalArgumentException("Not unique keys"))
+
 }

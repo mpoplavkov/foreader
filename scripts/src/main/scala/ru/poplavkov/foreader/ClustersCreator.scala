@@ -5,11 +5,8 @@ import java.io.File
 import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.implicits._
 import io.circe.generic.auto._
-import io.circe.parser.decode
-import io.circe.syntax._
 import ru.poplavkov.foreader.CreateClusterError.{NoMeaningsInDictionary, TooFewUsageExamples}
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
-import ru.poplavkov.foreader.text.{LexicalItem, Token}
 import ru.poplavkov.foreader.vector.MathVector
 
 import scala.language.higherKinds
@@ -23,18 +20,15 @@ class ClustersCreator[F[_] : Sync] {
 
   def createClusters(contextVectorsFile: File): F[Unit] = {
     val outFile = FileUtil.brotherFile(contextVectorsFile, "clusters.txt")
-    val content = FileUtil.readFile(contextVectorsFile.toPath)
-    val contextsByWord = decode[WordToVectorsMap](content).right.get
+    val contextsByWord = readJsonFile[WordToVectorsMap](contextVectorsFile)
     val wordsCount = contextsByWord.size
     val onePercent = wordsCount / 100
+
     val createClusterResults: F[List[Either[CreateClusterError, (WordWithPos, Seq[MathVector])]]] =
       contextsByWord.toList.zipWithIndex
         .traverse { case ((wordPos@WordWithPos(word, pos), vectors), ind) =>
-          val token = Token.Word(0, word, word, pos)
-          val item = LexicalItem.SingleWord(token)
-
           for {
-            entry <- dictionary.getDefinition(item).value
+            entry <- dictionary.getDefinition(word, pos).value
             meanings = entry.toSeq.flatMap(_.meanings)
             centroidsOrErr <- findCentroids(wordPos, meanings.size, vectors)
             _ <- if (ind % onePercent == 0) info(s"${ind / onePercent}%") else ().pure[F]
@@ -47,7 +41,7 @@ class ClustersCreator[F[_] : Sync] {
       _ <- logClusteringErrors(errors)
       wordToCentroidsMap = results.collect { case Right((word, centroids)) => word -> centroids }.toMap
       _ <- info(s"Created clusters for ${wordToCentroidsMap.size} words. Flushing")
-      _ <- FileUtil.writeToFile(outFile, wordToCentroidsMap.asJson.spaces2)
+      _ <- writeToFileJson(outFile, wordToCentroidsMap)
       _ <- info(s"Successfully wrote data to ${outFile.getAbsolutePath}")
     } yield ()
 

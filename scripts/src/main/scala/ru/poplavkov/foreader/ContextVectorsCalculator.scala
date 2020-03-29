@@ -6,8 +6,6 @@ import java.time.Instant
 import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.implicits._
 import io.circe.generic.auto._
-import io.circe.parser._
-import io.circe.syntax._
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
@@ -65,10 +63,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
       map <- findContextVectors(wordsWithPos, vectorsMap, contextLen)
 
       _ <- info(s"Vectors created. Flushing to the `${outFile.getAbsolutePath}`")
-
-      json = map.asJson
-      _ <- FileUtil.writeToFile(outFile, json.spaces2)
-
+      _ <- writeToFileJson(outFile, map)
       _ <- info(s"Processed ${file.getName}")
     } yield ()
 
@@ -90,14 +85,13 @@ class ContextVectorsCalculator[F[_] : Sync] {
   }
 
   private def combineVectorFiles(dir: File, outFile: File): F[Unit] = {
-    val combinedMap = dir.listFiles.map { file =>
-      val content = FileUtil.readFile(file.toPath)
-      decode[WordToVectorsMap](content).right.get
-    }.reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
+    val combinedMap = dir.listFiles
+      .map(readJsonFile[WordToVectorsMap])
+      .reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
 
     for {
       _ <- info("Combining vector files")
-      _ <- FileUtil.writeToFile(outFile, combinedMap.asJson.spaces2)
+      _ <- writeToFileJson(outFile, combinedMap)
       _ <- info("Finished")
     } yield ()
   }

@@ -2,7 +2,7 @@ package ru.poplavkov.foreader.dictionary.impl
 
 import cats.data.OptionT
 import cats.effect.Sync
-import net.sf.extjwnl.data.POS
+import net.sf.extjwnl.data.{POS, Synset}
 import net.sf.extjwnl.dictionary.{Dictionary => WordNetDictionary}
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl._
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
@@ -45,7 +45,7 @@ class WordNetDictionaryImpl[F[_] : Sync] extends Dictionary[F] {
       synonyms = sense.getWords.asScala.map(_.getLemma).filterNot(_ == lemma)
     } yield
       DictionaryEntry.Meaning(
-        id = sense.getKey.toString,
+        id = getId(lemma, sense),
         definition = defs.mkString("; "),
         partOfSpeech = Some(partOfSpeech),
         examples = examples,
@@ -59,6 +59,11 @@ class WordNetDictionaryImpl[F[_] : Sync] extends Dictionary[F] {
     }
   }
 
+  private def getId(lemma: String, sense: Synset): String = {
+    val lemmaKey = lemma.replaceAll("\\s+", "_")
+    val senseKey = sense.getKey
+    s"${lemmaKey}_$senseKey"
+  }
 
 }
 

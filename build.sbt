@@ -14,12 +14,12 @@ lazy val util = project
 
 lazy val model = project
   .settings(
-    libraryDependencies ++= Dependencies.tagging ++ Dependencies.enumeratum ++ Dependencies.test ++ Dependencies.json
+    libraryDependencies ++= Dependencies.tagging ++ Dependencies.enumeratum ++ Dependencies.test
   )
 
 lazy val core = project
   .settings(
-    libraryDependencies ++= Dependencies.stanford ++ Dependencies.wordnet,
+    libraryDependencies ++= Dependencies.stanford  ++ Dependencies.json ++ Dependencies.wordnet,
     resolvers += Resolver.sonatypeRepo("releases")
   ).dependsOn(model % "test->test;compile->compile", util)
 

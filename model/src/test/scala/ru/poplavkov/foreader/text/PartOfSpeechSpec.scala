@@ -1,6 +1,5 @@
 package ru.poplavkov.foreader.text
 
-import io.circe.syntax._
 import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.SpecBase
 
@@ -12,9 +11,9 @@ class PartOfSpeechSpec extends SpecBase {
   private val pos: PartOfSpeech = generate[PartOfSpeech]
 
   "PartOfSpeech" should {
-    s"convert $pos" in {
-      pos.asJson.as[PartOfSpeech].toOption.get shouldBe pos
+    s"convert $pos toString and fromString" in {
+      val str = PartOfSpeech.stringify(pos)
+      PartOfSpeech.fromString(str) shouldBe Some(pos)
     }
   }
-
 }

@@ -8,9 +8,8 @@ import cats.implicits._
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
-import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
-import ru.poplavkov.foreader.text.{PartOfSpeech, Token, TokenExtractor}
+import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.VectorsMap
 import ru.poplavkov.foreader.word2vec.VectorsExtractor
 
@@ -60,7 +59,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
       tokens <- tokenExtractor.extract(text)
 
       wordsWithPos = tokens.collect {
-        case Token.Word(_, _, lemma, pos) => (lemma, pos)
+        case Token.Word(_, _, lemma, pos) => WordWithPos(lemma, pos)
       }
 
       map <- findContextVectors(wordsWithPos, vectorsMap, contextLen)
@@ -75,14 +74,14 @@ class ContextVectorsCalculator[F[_] : Sync] {
 
   }
 
-  private def findContextVectors(wordsWithPos: Seq[(WordStr, PartOfSpeech)],
+  private def findContextVectors(wordsWithPos: Seq[WordWithPos],
                                  vectorsMap: VectorsMap,
                                  contextLen: Int): F[WordToVectorsMap] = Sync[F].delay {
     wordsWithPos.indices.map { wordInd =>
       val fromLeft = (wordInd - contextLen) max 0
       val toRight = (wordInd + contextLen) min (wordsWithPos.length - 1)
-      val leftVectors = (fromLeft until wordInd).map(wordsWithPos.apply).map(_._1).flatMap(vectorsMap.getVector)
-      val rightVectors = (toRight until wordInd by -1).map(wordsWithPos.apply).map(_._1).flatMap(vectorsMap.getVector)
+      val leftVectors = (fromLeft until wordInd).map(wordsWithPos.apply).map(_.word).flatMap(vectorsMap.getVector)
+      val rightVectors = (toRight until wordInd by -1).map(wordsWithPos.apply).map(_.word).flatMap(vectorsMap.getVector)
       wordsWithPos(wordInd) -> VectorUtil.avgVector(vectorsMap.dimension, leftVectors ++ rightVectors)
     }.groupBy(_._1).mapValues(_.map(_._2))
   }

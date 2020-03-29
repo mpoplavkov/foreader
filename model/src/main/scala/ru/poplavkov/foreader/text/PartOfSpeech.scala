@@ -1,7 +1,5 @@
 package ru.poplavkov.foreader.text
 
-import io.circe.{Decoder, Encoder}
-
 /**
   * @author mpoplavkov
   */
@@ -32,7 +30,7 @@ object PartOfSpeech {
 
   case class Other(tag: String) extends PartOfSpeech
 
-  implicit val encoder: Encoder[PartOfSpeech] = Encoder.encodeString.contramap {
+  def stringify(pos: PartOfSpeech): String = pos match {
     case Noun => "noun"
     case Pronoun => "pronoun"
     case Verb => "verb"
@@ -45,21 +43,20 @@ object PartOfSpeech {
     case Other(tag) => s"other_$tag"
   }
 
-  implicit val decoder: Decoder[PartOfSpeech] = {
+  def fromString(str: String): Option[PartOfSpeech] = {
     val otherRegexp = "other_(.*)".r
-    Decoder.decodeString.map {
-      case "noun" => Noun
-      case "pronoun" => Pronoun
-      case "verb" => Verb
-      case "adjective" => Adjective
-      case "adverb" => Adverb
-      case "preposition" => Preposition
-      case "conjunction" => Conjunction
-      case "interjection" => Interjection
-      case "numeral" => Numeral
-      case otherRegexp(tag) => Other(tag)
-      case _ => ???
+    str match {
+      case "noun" => Some(Noun)
+      case "pronoun" => Some(Pronoun)
+      case "verb" => Some(Verb)
+      case "adjective" => Some(Adjective)
+      case "adverb" => Some(Adverb)
+      case "preposition" => Some(Preposition)
+      case "conjunction" => Some(Conjunction)
+      case "interjection" => Some(Interjection)
+      case "numeral" => Some(Numeral)
+      case otherRegexp(tag) => Some(Other(tag))
+      case _ => None
     }
   }
-
 }

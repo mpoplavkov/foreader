@@ -7,8 +7,10 @@ sealed trait CreateClusterError
 
 object CreateClusterError {
 
-  case class NoMeaningsInDictionary(word: String) extends CreateClusterError
+  case class NoMeaningsInDictionary(wordWithPos: WordWithPos) extends CreateClusterError
 
-  case class TooFewUsageExamples(word: String, examples: Int, definitions: Int) extends CreateClusterError
+  case class TooFewUsageExamples(wordWithPos: WordWithPos,
+                                 examples: Int,
+                                 definitions: Int) extends CreateClusterError
 
 }

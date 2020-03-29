@@ -4,14 +4,12 @@ import java.io.File
 
 import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.implicits._
-import com.softwaremill.tagging._
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
 import ru.poplavkov.foreader.CreateClusterError.{NoMeaningsInDictionary, TooFewUsageExamples}
-import ru.poplavkov.foreader.dictionary.DictionaryEntry
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
-import ru.poplavkov.foreader.text.{LexicalItem, PartOfSpeech, Token}
+import ru.poplavkov.foreader.text.{LexicalItem, Token}
 import ru.poplavkov.foreader.vector.MathVector
 
 import scala.language.higherKinds
@@ -26,23 +24,19 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
   def createClusters(contextVectorsFile: File): F[Unit] = {
     val outFile = FileUtil.brotherFile(contextVectorsFile, "clusters.txt")
     val content = FileUtil.readFile(contextVectorsFile.toPath)
-    val contextsByWord = decode[Map[String, Seq[MathVector]]](content).right.get
+    val contextsByWord = decode[WordToVectorsMap](content).right.get
     val wordsCount = contextsByWord.size
     val onePercent = wordsCount / 100
-    val createClusterResults: F[List[Either[CreateClusterError, (String, Seq[MathVector])]]] =
+    val createClusterResults: F[List[Either[CreateClusterError, (WordWithPos, Seq[MathVector])]]] =
       contextsByWord.toList.zipWithIndex
-        .traverse { case ((word, vectors), ind) =>
-          val allDictionaryMeanings: F[List[DictionaryEntry.Meaning]] =
-            PartOfSpeech.all.toList
-              .traverse { pos =>
-                val token = Token.Word(0, word.taggedWith, word.taggedWith, pos)
-                val item = LexicalItem.SingleWord(token)
-                dictionary.getDefinition(item).value
-              }.map(_.flatten.flatMap(_.meanings))
+        .traverse { case ((wordPos@WordWithPos(word, pos), vectors), ind) =>
+          val token = Token.Word(0, word, word, pos)
+          val item = LexicalItem.SingleWord(token)
 
           for {
-            meanings <- allDictionaryMeanings
-            centroidsOrErr <- findCentroids(word, meanings.size, vectors)
+            entry <- dictionary.getDefinition(item).value
+            meanings = entry.toSeq.flatMap(_.meanings)
+            centroidsOrErr <- findCentroids(wordPos, meanings.size, vectors)
             _ <- if (ind % onePercent == 0) info(s"${ind / onePercent}%") else ().pure[F]
           } yield centroidsOrErr
         }
@@ -59,16 +53,16 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
 
   }
 
-  private def findCentroids(word: String,
+  private def findCentroids(wordWithPos: WordWithPos,
                             meaningsCount: Int,
-                            vectors: Seq[MathVector]): F[Either[CreateClusterError, (String, Seq[MathVector])]] =
+                            vectors: Seq[MathVector]): F[Either[CreateClusterError, (WordWithPos, Seq[MathVector])]] =
     Sync[F].delay {
       if (meaningsCount <= 0) {
-        Left(NoMeaningsInDictionary(word))
+        Left(NoMeaningsInDictionary(wordWithPos))
       } else {
         VectorUtil.kmeans(meaningsCount, vectors) match {
-          case Some(centroids) => Right(word -> centroids)
-          case None => Left(TooFewUsageExamples(word, vectors.size, meaningsCount))
+          case Some(centroids) => Right(wordWithPos -> centroids)
+          case None => Left(TooFewUsageExamples(wordWithPos, vectors.size, meaningsCount))
         }
       }
     }

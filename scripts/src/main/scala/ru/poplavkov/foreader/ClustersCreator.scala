@@ -17,7 +17,7 @@ import scala.language.higherKinds
 /**
   * @author mpoplavkov
   */
-class ClusterToDefinitionMapper[F[_] : Sync] {
+class ClustersCreator[F[_] : Sync] {
 
   private val dictionary = new WordNetDictionaryImpl[F]
 
@@ -80,9 +80,9 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
   }
 }
 
-object ClusterToDefinitionMapper extends IOApp {
+object ClustersCreator extends IOApp {
 
-  val mapper = new ClusterToDefinitionMapper[IO]
+  val creator = new ClustersCreator[IO]
   val lastContextVectorsDir: File = new File(LocalDir)
     .listFiles
     .filter(_.getName.startsWith("context_vectors"))
@@ -90,5 +90,5 @@ object ClusterToDefinitionMapper extends IOApp {
   val contextVectorsFile: File = FileUtil.childFile(lastContextVectorsDir, "context_vectors.txt")
 
   override def run(args: List[String]): IO[ExitCode] =
-    mapper.createClusters(contextVectorsFile).map(_ => ExitCode.Success)
+    creator.createClusters(contextVectorsFile).map(_ => ExitCode.Success)
 }

@@ -65,10 +65,11 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
     Sync[F].delay {
       if (meaningsCount <= 0) {
         Left(NoMeaningsInDictionary(word))
-      } else if (meaningsCount > vectors.size) {
-        Left(TooFewUsageExamples(word, vectors.size, meaningsCount))
       } else {
-        Right(word -> VectorUtil.kmeans(meaningsCount, vectors))
+        VectorUtil.kmeans(meaningsCount, vectors) match {
+          case Some(centroids) => Right(word -> centroids)
+          case None => Left(TooFewUsageExamples(word, vectors.size, meaningsCount))
+        }
       }
     }
 
@@ -76,7 +77,7 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
     val noMeanings = errors.collect { case NoMeaningsInDictionary(word) => word }
     val tooFewExamples = errors.collect { case e: TooFewUsageExamples => e }
     for {
-      _ <- info(s"Not found ${noMeanings.size} meanings in dictionary: ${noMeanings.mkString(",")}")
+      _ <- info(s"Not found ${noMeanings.size} meanings in the dictionary: ${noMeanings.mkString(",")}")
       tooFewMsg = tooFewExamples.map { case TooFewUsageExamples(word, examples, definitions) =>
         s"$word(e=$examples,d=$definitions)"
       }.mkString(",")

@@ -24,18 +24,24 @@ object VectorUtil {
   /**
     * K-Means clustering
     * Uses squared Euclidean distance
+    * Will find `k` cluster centroids iff distinct vectors size >= `k`
     *
     * @param k       desired number of clusters
     * @param vectors vectors to cluster
-    * @return sequence of cluster centroids
+    * @return sequence of cluster centroids or `None` if it couldn't find `k` clusters
     */
-  def kmeans(k: Int, vectors: Seq[MathVector]): Seq[MathVector] = {
-    require(vectors.size >= k, "Couldn't create clusters if desired number of them is more than vectors count")
+  def kmeans(k: Int, vectors: Seq[MathVector]): Option[Seq[MathVector]] = {
     if (k == 1) {
-      Seq(avgVector(vectors.head.dimension, vectors))
+      Some(Seq(avgVector(vectors.head.dimension, vectors)))
     } else {
       val means = clustering.kmeans(vectors, k)
-      means.centroids.map(doublesArray2MathVector)
+      val labels = means.y
+      if (labels.toSet.size < k) {
+        // Couldn't find `k` clusters
+        None
+      } else {
+        Some(means.centroids.map(doublesArray2MathVector))
+      }
     }
   }
 

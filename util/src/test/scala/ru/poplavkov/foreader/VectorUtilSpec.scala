@@ -53,7 +53,7 @@ class VectorUtilSpec extends SpecBase {
   "VectorUtil.kmeans" should {
     cases.foreach { case TestCase(clustersNum, expectedCentroids) =>
       s"find $clustersNum clusters" in {
-        val centroids = VectorUtil.kmeans(clustersNum, vectors)
+        val centroids = VectorUtil.kmeans(clustersNum, vectors).get
         val similarityMap: Map[MathVector, Seq[MathVector]] =
           expectedCentroids.map { expected =>
             expected -> centroids.filter(areSimilar(_, expected))

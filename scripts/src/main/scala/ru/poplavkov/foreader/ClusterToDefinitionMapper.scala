@@ -8,6 +8,7 @@ import com.softwaremill.tagging._
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
+import ru.poplavkov.foreader.CreateClusterError.{NoMeaningsInDictionary, TooFewUsageExamples}
 import ru.poplavkov.foreader.dictionary.DictionaryEntry
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
 import ru.poplavkov.foreader.text.{LexicalItem, PartOfSpeech, Token}
@@ -28,7 +29,7 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
     val contextsByWord = decode[Map[String, Seq[MathVector]]](content).right.get
     val wordsCount = contextsByWord.size
     val onePercent = wordsCount / 100
-    val wordToCentroids: F[Map[String, Seq[MathVector]]] =
+    val createClusterResults: F[List[Either[CreateClusterError, (String, Seq[MathVector])]]] =
       contextsByWord.toList.zipWithIndex
         .traverse { case ((word, vectors), ind) =>
           val allDictionaryMeanings: F[List[DictionaryEntry.Meaning]] =
@@ -41,20 +42,46 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
 
           for {
             meanings <- allDictionaryMeanings
-            meaningsCount = meanings.size
-            centroids = if (meaningsCount > 0) VectorUtil.kmeans(meaningsCount, vectors) else Seq.empty
+            centroids <- findCentroids(word, meanings.size, vectors)
             _ <- if (ind % onePercent == 0) info(s"${ind / onePercent}%") else ().pure[F]
-          } yield word -> centroids
-
-        }.map(_.filter(_._2.nonEmpty).toMap)
+          } yield centroids
+        }
 
     for {
-      clustersMap <- wordToCentroids
-      _ <- info("Clusters created. Flushing")
-      _ <- FileUtil.writeToFile(outFile, clustersMap.asJson.spaces2)
+      results <- createClusterResults
+      errors = results.collect { case Left(e) => e }
+      _ <- logClusteringErrors(errors)
+      wordToCentroidsMap = results.collect { case Right((word, centroids)) => word -> centroids }.toMap
+      _ <- info(s"Created clusters for ${wordToCentroidsMap.size} words. Flushing")
+      _ <- FileUtil.writeToFile(outFile, wordToCentroidsMap.asJson.spaces2)
       _ <- info(s"Successfully wrote data to ${outFile.getAbsolutePath}")
     } yield ()
 
+  }
+
+  private def findCentroids(word: String,
+                            meaningsCount: Int,
+                            vectors: Seq[MathVector]): F[Either[CreateClusterError, (String, Seq[MathVector])]] =
+    Sync[F].delay {
+      if (meaningsCount <= 0) {
+        Left(NoMeaningsInDictionary(word))
+      } else if (meaningsCount > vectors.size) {
+        Left(TooFewUsageExamples(word, vectors.size, meaningsCount))
+      } else {
+        Right(word -> VectorUtil.kmeans(meaningsCount, vectors))
+      }
+    }
+
+  private def logClusteringErrors(errors: Seq[CreateClusterError]): F[Unit] = {
+    val noMeanings = errors.collect { case NoMeaningsInDictionary(word) => word }
+    val tooFewExamples = errors.collect { case e: TooFewUsageExamples => e }
+    for {
+      _ <- info(s"Not found ${noMeanings.size} meanings in dictionary: ${noMeanings.mkString(",")}")
+      tooFewMsg = tooFewExamples.map { case TooFewUsageExamples(word, examples, definitions) =>
+        s"$word(e=$examples,d=$definitions)"
+      }.mkString(",")
+      _ <- info(s"Too few examples of ${tooFewExamples.size} words: $tooFewMsg")
+    } yield ()
   }
 }
 

@@ -10,7 +10,7 @@ import io.circe.parser._
 import io.circe.syntax._
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
-import ru.poplavkov.foreader.vector.VectorsMap
+import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
 import ru.poplavkov.foreader.word2vec.VectorsExtractor
 
 import scala.language.higherKinds
@@ -77,11 +77,14 @@ class ContextVectorsCalculator[F[_] : Sync] {
   private def findContextVectors(wordsWithPos: Seq[WordWithPos],
                                  vectorsMap: VectorsMap,
                                  contextLen: Int): F[WordToVectorsMap] = Sync[F].delay {
+    def vectorsByIndices(indices: Seq[Int]): Seq[MathVector] =
+      indices.map(wordsWithPos.apply).map(_.word).flatMap(vectorsMap.getVector)
+
     wordsWithPos.indices.map { wordInd =>
       val fromLeft = (wordInd - contextLen) max 0
       val toRight = (wordInd + contextLen) min (wordsWithPos.length - 1)
-      val leftVectors = (fromLeft until wordInd).map(wordsWithPos.apply).map(_.word).flatMap(vectorsMap.getVector)
-      val rightVectors = (toRight until wordInd by -1).map(wordsWithPos.apply).map(_.word).flatMap(vectorsMap.getVector)
+      val leftVectors = vectorsByIndices(fromLeft until wordInd)
+      val rightVectors = vectorsByIndices(toRight until wordInd by -1)
       wordsWithPos(wordInd) -> VectorUtil.avgVector(vectorsMap.dimension, leftVectors ++ rightVectors)
     }.groupBy(_._1).mapValues(_.map(_._2))
   }

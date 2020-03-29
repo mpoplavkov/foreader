@@ -19,7 +19,7 @@ lazy val model = project
 
 lazy val core = project
   .settings(
-    libraryDependencies ++= Dependencies.stanford  ++ Dependencies.json ++ Dependencies.wordnet,
+    libraryDependencies ++= Dependencies.stanford ++ Dependencies.json ++ Dependencies.wordnet,
     resolvers += Resolver.sonatypeRepo("releases")
   ).dependsOn(model % "test->test;compile->compile", util)
 

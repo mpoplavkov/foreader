@@ -90,12 +90,11 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
 
   private def synonymsVectors(pos: PartOfSpeech,
                               meaning: Meaning,
-                              wordPosToClusters: WordToVectorsMap): Seq[MathVector] = {
+                              wordPosToClusters: WordToVectorsMap): Seq[MathVector] =
     meaning.synonyms
       .map(s => WordWithPos(s.taggedWith, pos))
       .flatMap(wordPosToClusters.get)
       .flatten
-  }
 
 }
 

@@ -6,10 +6,12 @@ import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.implicits._
 import com.softwaremill.tagging._
 import io.circe.generic.auto._
+import ru.poplavkov.foreader.dictionary.Dictionary
 import ru.poplavkov.foreader.dictionary.DictionaryEntry.Meaning
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
-import ru.poplavkov.foreader.text.PartOfSpeech
-import ru.poplavkov.foreader.vector.MathVector
+import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
+import ru.poplavkov.foreader.text.{PartOfSpeech, Token, TokenExtractor}
+import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -17,14 +19,16 @@ import scala.language.higherKinds
 /**
   * @author mpoplavkov
   */
-class ClusterToDefinitionMapper[F[_] : Sync] {
+class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.English) {
 
-  private val dictionary = new WordNetDictionaryImpl[F]
+  private val dictionary: Dictionary[F] = new WordNetDictionaryImpl[F]
+  private val tokenExtractor: TokenExtractor[F] = new CoreNlpTokenExtractor[F](language)
 
   def mapClusters(clustersFile: File): F[Unit] = {
     val outFile = FileUtil.brotherFile(clustersFile, "clusteredDefinitions.txt")
     val wordPosToClusters = readJsonFile[WordToVectorsMap](clustersFile)
     var meaningsWithoutClusterCounter = 0
+    var meaningsWithExample = 0
 
     val meaningToClusterMap: F[Map[String, MathVector]] =
       wordPosToClusters.toList.traverse { case (WordWithPos(word, pos), clusters) =>
@@ -41,6 +45,7 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
               meaningIdToClusterMap + (m -> cl)
             case (ms, _) =>
               meaningsWithoutClusterCounter += ms.size
+              meaningsWithExample += meanings.size - ms.size
               meaningIdToClusterMap
             case _ =>
               meaningIdToClusterMap
@@ -51,6 +56,7 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
     for {
       map <- meaningToClusterMap
       _ <- info(s"Meanings without mapped cluster count = $meaningsWithoutClusterCounter")
+      _ <- info(s"Meanings with example count = $meaningsWithExample")
       _ <- info(s"Mapping from meanings to clusters created. Flushing to ${outFile.getAbsolutePath}")
       _ <- writeToFileJson(outFile, map)
     } yield ()
@@ -88,6 +94,33 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
     }
   }
 
+  // TODO: write same function for synonyms
+  // TODO: refactor scripts
+
+  private def distancesByExamples(wordPos: WordWithPos,
+                                  vectorsMap: VectorsMap,
+                                  meaning: Meaning,
+                                  clusters: Seq[MathVector],
+                                  contextLen: Int): F[Seq[(MathVector, MathVector)]] = {
+    val examples = meaning.examples
+    if (examples.nonEmpty) {
+      val contextVectors = examples.toList.traverse { example =>
+        for {
+          tokens <- tokenExtractor.extract(example)
+          wordsWithPos = tokens.collect { case Token.Word(_, _, lemma, pos) => WordWithPos(lemma, pos) }
+          wordIndOpt = wordsWithPos.zipWithIndex.find(_._1 == wordPos).map(_._2)
+        } yield wordIndOpt.map(contextVectorByIndex(wordsWithPos, _, vectorsMap, contextLen))
+      }.map(_.flatten)
+
+      contextVectors.map { vectors =>
+        CollectionUtil.cartesianProduct(clusters, vectors)
+
+      }
+    } else {
+      Seq.empty[(MathVector, MathVector)].pure[F]
+    }
+  }
+
   private def synonymsVectors(pos: PartOfSpeech,
                               meaning: Meaning,
                               wordPosToClusters: WordToVectorsMap): Seq[MathVector] =
@@ -99,6 +132,8 @@ class ClusterToDefinitionMapper[F[_] : Sync] {
 }
 
 object ClusterToDefinitionMapper extends IOApp {
+
+  type MeaningClusterDist = (Meaning, MathVector, Float)
 
   val mapper = new ClusterToDefinitionMapper[IO]
   val lastContextVectorsDir: File = new File(LocalDir)

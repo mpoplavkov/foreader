@@ -6,11 +6,9 @@ import java.time.Instant
 import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.implicits._
 import io.circe.generic.auto._
-import io.circe.parser._
-import io.circe.syntax._
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
-import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
+import ru.poplavkov.foreader.vector.VectorsMap
 import ru.poplavkov.foreader.word2vec.VectorsExtractor
 
 import scala.language.higherKinds
@@ -21,8 +19,9 @@ import scala.language.higherKinds
   *
   * @author mpoplavkov
   */
-class ContextVectorsCalculator[F[_] : Sync] {
+class ContextVectorsCalculator[F[_] : Sync](language: Language = Language.English) {
 
+  private val tokenExtractor = new CoreNlpTokenExtractor[F](language)
   private val id = Instant.now.toEpochMilli
   private val WorkDir: File = new File(s"$LocalDir/context_vectors_$id")
   private val SeparateFilesDir: File = FileUtil.childFile(WorkDir, "separate")
@@ -31,9 +30,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
 
   def calculate(vectorsFile: File,
                 corpus: File,
-                contextLen: Int = 3,
-                language: Language = Language.English): F[Unit] = {
-    val tokenExtractor = new CoreNlpTokenExtractor[F](language)
+                contextLen: Int = 3): F[Unit] = {
     for {
       vectorsMap <- VectorsExtractor.extractVectors[F](vectorsFile.toPath)
       _ <- info("Vectors extracted")
@@ -65,10 +62,7 @@ class ContextVectorsCalculator[F[_] : Sync] {
       map <- findContextVectors(wordsWithPos, vectorsMap, contextLen)
 
       _ <- info(s"Vectors created. Flushing to the `${outFile.getAbsolutePath}`")
-
-      json = map.asJson
-      _ <- FileUtil.writeToFile(outFile, json.spaces2)
-
+      _ <- writeToFileJson(outFile, map)
       _ <- info(s"Processed ${file.getName}")
     } yield ()
 
@@ -77,27 +71,21 @@ class ContextVectorsCalculator[F[_] : Sync] {
   private def findContextVectors(wordsWithPos: Seq[WordWithPos],
                                  vectorsMap: VectorsMap,
                                  contextLen: Int): F[WordToVectorsMap] = Sync[F].delay {
-    def vectorsByIndices(indices: Seq[Int]): Seq[MathVector] =
-      indices.map(wordsWithPos.apply).map(_.word).flatMap(vectorsMap.getVector)
-
-    wordsWithPos.indices.map { wordInd =>
-      val fromLeft = (wordInd - contextLen) max 0
-      val toRight = (wordInd + contextLen) min (wordsWithPos.length - 1)
-      val leftVectors = vectorsByIndices(fromLeft until wordInd)
-      val rightVectors = vectorsByIndices(toRight until wordInd by -1)
-      wordsWithPos(wordInd) -> VectorUtil.avgVector(vectorsMap.dimension, leftVectors ++ rightVectors)
-    }.groupBy(_._1).mapValues(_.map(_._2))
+    wordsWithPos.zipWithIndex
+      .map { case (word, ind) =>
+        word -> contextVectorByIndex(wordsWithPos, ind, vectorsMap, contextLen)
+      }
+      .groupBy(_._1).mapValues(_.map(_._2))
   }
 
   private def combineVectorFiles(dir: File, outFile: File): F[Unit] = {
-    val combinedMap = dir.listFiles.map { file =>
-      val content = FileUtil.readFile(file.toPath)
-      decode[WordToVectorsMap](content).right.get
-    }.reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
+    val combinedMap = dir.listFiles
+      .map(readJsonFile[WordToVectorsMap])
+      .reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
 
     for {
       _ <- info("Combining vector files")
-      _ <- FileUtil.writeToFile(outFile, combinedMap.asJson.spaces2)
+      _ <- writeToFileJson(outFile, combinedMap)
       _ <- info("Finished")
     } yield ()
   }

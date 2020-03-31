@@ -66,8 +66,6 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
         case (ms, _) =>
           meaningsWithoutClusterCounter += ms.size
           meaningIdToClusterMap
-        case _ =>
-          meaningIdToClusterMap
       }
     } yield resultMap
 
@@ -99,6 +97,19 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
       }
     }.map(_.flatten)
 
+  private def examplesContextVectors(meaning: Meaning,
+                                     wordPos: WordWithPos,
+                                     vectorsMap: VectorsMap,
+                                     contextLen: Int): F[Seq[MathVector]] = {
+    meaning.examples.toList.traverse { example =>
+      for {
+        tokens <- tokenExtractor.extract(example)
+        wordsWithPos = tokens.collect { case Token.Word(_, _, lemma, pos) => WordWithPos(lemma, pos) }
+        wordIndOpt = wordsWithPos.zipWithIndex.find(_._1 == wordPos).map(_._2)
+      } yield wordIndOpt.map(contextVectorByIndex(wordsWithPos, _, vectorsMap, contextLen))
+    }.map(_.flatten)
+  }
+
   private def distancesBySynonymContext(pos: PartOfSpeech,
                                         meanings: Seq[Meaning],
                                         clusters: Seq[MathVector],
@@ -116,19 +127,6 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
       .map(s => WordWithPos(s.taggedWith, pos))
       .flatMap(wordPosToClusters.get)
       .flatten
-
-  private def examplesContextVectors(meaning: Meaning,
-                                     wordPos: WordWithPos,
-                                     vectorsMap: VectorsMap,
-                                     contextLen: Int): F[Seq[MathVector]] = {
-    meaning.examples.toList.traverse { example =>
-      for {
-        tokens <- tokenExtractor.extract(example)
-        wordsWithPos = tokens.collect { case Token.Word(_, _, lemma, pos) => WordWithPos(lemma, pos) }
-        wordIndOpt = wordsWithPos.zipWithIndex.find(_._1 == wordPos).map(_._2)
-      } yield wordIndOpt.map(contextVectorByIndex(wordsWithPos, _, vectorsMap, contextLen))
-    }.map(_.flatten)
-  }
 
 }
 

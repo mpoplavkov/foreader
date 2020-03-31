@@ -36,10 +36,4 @@ object CollectionUtil {
     indices.map(seq.apply)
   }
 
-  def cartesianProduct[T, V](ts: Seq[T], vs: Seq[V]): Seq[(T, V)] =
-    for {
-      t <- ts
-      v <- vs
-    } yield (t, v)
-
 }

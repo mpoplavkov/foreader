@@ -1,9 +1,18 @@
 package ru.poplavkov.foreader.text
 
+import ru.poplavkov.foreader.text.PunctuationMark._
+
 /**
   * @author mpoplavkov
   */
-sealed trait PunctuationMark
+sealed trait PunctuationMark {
+
+  final def isEndOfSentence: Boolean = this match {
+    case Dot | Exclamation | Question => true
+    case _ => false
+  }
+
+}
 
 object PunctuationMark {
 

@@ -23,7 +23,7 @@ class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextLen: In
   // TODO: check if it would not fail with StackOverflow for huge inputs
   private def tokensToLexicalItemsInternal(tokens: List[Token],
                                            resultReversed: List[LexicalItem] = Nil,
-                                           prevContext: List[WordStr] = Nil): F[Seq[LexicalItem]] = {
+                                           prevContext: Seq[WordStr] = Seq.empty): F[Seq[LexicalItem]] = {
 
     def ctxt: Seq[Token] => TextContext = createContext(prevContext, _)
 
@@ -36,12 +36,12 @@ class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextLen: In
               tokensToLexicalItemsInternal(
                 newRest,
                 item :: resultReversed,
-                addToPrevContext(prevContext, item.lemmas.toList))
+                addToPrevContext(prevContext, item.lemmas))
             case None =>
               tokensToLexicalItemsInternal(
                 rest,
                 LexicalItem.SingleWord(word, ctxt(rest)) :: resultReversed,
-                addToPrevContext(prevContext, List(word.lemma))
+                addToPrevContext(prevContext, Seq(word.lemma))
               )
           }
         }
@@ -54,7 +54,7 @@ class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextLen: In
     }
   }
 
-  private def addToPrevContext(prevContext: List[WordStr], toAdd: List[WordStr]): List[WordStr] =
+  private def addToPrevContext(prevContext: Seq[WordStr], toAdd: Seq[WordStr]): Seq[WordStr] =
     (prevContext ++ toAdd).takeRight(contextLen)
 
   private def nextTokensToContext(tokens: Seq[Token]): Seq[WordStr] =
@@ -71,12 +71,8 @@ class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextLen: In
 object LexicalItemExtractorImpl {
 
   private def firstFoundMweAndRest(tokens: List[Token],
-                                   mweSet: Set[Seq[WordStr]]): Option[(List[Token.Word], List[Token])] =
-  if (mweSet.isEmpty) {
-    // for optimization purpose - to not extract starting words if mweSet is empty
-    None
-  } else {
-    val (words, restTokens) = extractStartingWords(tokens, limit = 10)
+                                   mweSet: Set[Seq[WordStr]]): Option[(List[Token.Word], List[Token])] = {
+    lazy val (words, restTokens) = extractStartingWords(tokens, limit = 10)
     mweSet.foldLeft[Option[(List[Token.Word], List[Token])]](None) {
       case (None, mwe) =>
         removeSubsequenceInOrder(words, mwe.toList).map { case (mweFound, withoutMwe) =>

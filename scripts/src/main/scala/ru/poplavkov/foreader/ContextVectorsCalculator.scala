@@ -28,14 +28,12 @@ class ContextVectorsCalculator[F[_] : Sync](language: Language = Language.Englis
   WorkDir.mkdir()
   SeparateFilesDir.mkdir()
 
-  def calculate(vectorsFile: File,
-                corpus: File,
-                contextLen: Int = 3): F[Unit] = {
+  def calculate(vectorsFile: File, corpus: File): F[Unit] = {
     for {
       vectorsMap <- VectorsExtractor.extractVectors[F](vectorsFile.toPath)
       _ <- info("Vectors extracted")
       files = corpus.listFiles.toList
-      _ <- files.traverse(calculateForOneFile(_, SeparateFilesDir, tokenExtractor, contextLen, vectorsMap, language))
+      _ <- files.traverse(calculateForOneFile(_, SeparateFilesDir, tokenExtractor, vectorsMap, language))
       _ <- combineVectorFiles(SeparateFilesDir, FileUtil.childFile(WorkDir, "context_vectors.txt"))
     } yield ()
 
@@ -44,7 +42,6 @@ class ContextVectorsCalculator[F[_] : Sync](language: Language = Language.Englis
   private def calculateForOneFile(file: File,
                                   targetDir: File,
                                   tokenExtractor: TokenExtractor[F],
-                                  contextLen: Int,
                                   vectorsMap: VectorsMap,
                                   language: Language): F[Unit] = {
     val text = FileUtil.readFile(file.toPath)
@@ -54,12 +51,7 @@ class ContextVectorsCalculator[F[_] : Sync](language: Language = Language.Englis
       _ <- info(f"Start processing file of size $fileSizeMb%1.2fmb: `${file.getName}`")
 
       tokens <- tokenExtractor.extract(text)
-
-      wordsWithPos = tokens.collect {
-        case Token.Word(_, _, lemma, pos) => WordWithPos(lemma, pos)
-      }
-
-      map <- findContextVectors(wordsWithPos, vectorsMap, contextLen)
+      map <- findContextVectors(tokens, vectorsMap)
 
       _ <- info(s"Vectors created. Flushing to the `${outFile.getAbsolutePath}`")
       _ <- writeToFileJson(outFile, map)
@@ -68,12 +60,11 @@ class ContextVectorsCalculator[F[_] : Sync](language: Language = Language.Englis
 
   }
 
-  private def findContextVectors(wordsWithPos: Seq[WordWithPos],
-                                 vectorsMap: VectorsMap,
-                                 contextLen: Int): F[WordToVectorsMap] = Sync[F].delay {
-    wordsWithPos.zipWithIndex
-      .map { case (word, ind) =>
-        word -> contextVectorByIndex(wordsWithPos, ind, vectorsMap, contextLen)
+  private def findContextVectors(tokens: Seq[Token],
+                                 vectorsMap: VectorsMap): F[WordToVectorsMap] = Sync[F].delay {
+    tokens.zipWithIndex
+      .collect { case (Token.Word(_, _, lemma, pos), ind) =>
+        WordWithPos(lemma, pos) -> contextVectorByIndex(tokens, ind, vectorsMap)
       }
       .groupBy(_._1).mapValues(_.map(_._2))
   }
@@ -97,7 +88,7 @@ object ContextVectorsCalculator extends IOApp {
   private val calculator = new ContextVectorsCalculator[IO]
 
   private val VectorsFile = new File(s"$LocalDir/vectors.txt")
-  private val CorpusDir = new File(s"$LocalDir/corpus")
+  private val CorpusDir = new File(s"$LocalDir/my_corpus")
 
   override def run(args: List[String]): IO[ExitCode] =
     calculator.calculate(VectorsFile, CorpusDir).map(_ => ExitCode.Success)

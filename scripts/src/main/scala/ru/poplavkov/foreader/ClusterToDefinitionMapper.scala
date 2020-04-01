@@ -28,14 +28,14 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
   private val tokenExtractor: TokenExtractor[F] = new CoreNlpTokenExtractor[F](language)
   private var meaningsWithoutClusterCounter = 0
 
-  def mapClusters(clustersFile: File, vectorsFile: File, contextLen: Int = 3): F[Unit] = {
+  def mapClusters(clustersFile: File, vectorsFile: File): F[Unit] = {
     val outFile = FileUtil.brotherFile(clustersFile, "clusteredDefinitions.txt")
     val wordPosToClusters = readJsonFile[WordToVectorsMap](clustersFile)
 
     for {
       vectorsMap <- VectorsExtractor.extractVectors[F](vectorsFile.toPath)
       meaningsToClusters <- wordPosToClusters.toList.traverse { case (wordPos, clusters) =>
-        meaningIdToClusterMap(wordPos, clusters, wordPosToClusters, vectorsMap, contextLen)
+        meaningIdToClusterMap(wordPos, clusters, wordPosToClusters, vectorsMap)
       }
       allMeaningsToClusters = meaningsToClusters.reduce(CollectionUtil.mergeMapsWithUniqueKeys[DictionaryMeaningId, MathVector])
       _ <- info(s"Meanings without mapped cluster count = $meaningsWithoutClusterCounter")
@@ -47,14 +47,13 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
   private def meaningIdToClusterMap(wordPos: WordWithPos,
                                     clusters: Seq[MathVector],
                                     wordPosToClusters: WordToVectorsMap,
-                                    vectorsMap: VectorsMap,
-                                    contextLen: Int): F[Map[DictionaryMeaningId, MathVector]] =
+                                    vectorsMap: VectorsMap): F[Map[DictionaryMeaningId, MathVector]] =
     for {
       entry <- dictionary.getDefinition(wordPos.word, wordPos.pos).value
       meanings = entry.toSeq.flatMap(_.meanings)
       _ = require(meanings.size == clusters.size)
       synonymDistances = distancesBySynonymContext(wordPos.pos, meanings, clusters, wordPosToClusters)
-      exampleDistances <- distancesByExampleContext(wordPos, vectorsMap, meanings, clusters, contextLen)
+      exampleDistances <- distancesByExampleContext(wordPos, vectorsMap, meanings, clusters)
       sorted = (synonymDistances ++ exampleDistances).sortBy(_._3)
       meaningIdToClusterMap = meaningToClosestCluster(sorted)
 
@@ -87,10 +86,9 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
   private def distancesByExampleContext(wordPos: WordWithPos,
                                         vectorsMap: VectorsMap,
                                         meanings: Seq[Meaning],
-                                        clusters: Seq[MathVector],
-                                        contextLen: Int): F[Seq[MeaningClusterDist]] =
+                                        clusters: Seq[MathVector]): F[Seq[MeaningClusterDist]] =
     meanings.toList.traverse { meaning =>
-      examplesContextVectors(meaning, wordPos, vectorsMap, contextLen).map { exampleVectors =>
+      examplesContextVectors(meaning, wordPos, vectorsMap).map { exampleVectors =>
         for {
           exampleVector <- exampleVectors
           cluster <- clusters
@@ -100,14 +98,14 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
 
   private def examplesContextVectors(meaning: Meaning,
                                      wordPos: WordWithPos,
-                                     vectorsMap: VectorsMap,
-                                     contextLen: Int): F[Seq[MathVector]] = {
+                                     vectorsMap: VectorsMap): F[Seq[MathVector]] = {
     meaning.examples.toList.traverse { example =>
       for {
         tokens <- tokenExtractor.extract(example)
-        wordsWithPos = tokens.collect { case Token.Word(_, _, lemma, pos) => WordWithPos(lemma, pos) }
-        wordIndOpt = wordsWithPos.zipWithIndex.find(_._1 == wordPos).map(_._2)
-      } yield wordIndOpt.map(contextVectorByIndex(wordsWithPos, _, vectorsMap, contextLen))
+        wordIndOpt = tokens.zipWithIndex.collectFirst {
+          case (Token.Word(_, _, word, pos), ind) if WordWithPos(word, pos) == wordPos => ind
+        }
+      } yield wordIndOpt.map(contextVectorByIndex(tokens, _, vectorsMap))
     }.map(_.flatten)
   }
 

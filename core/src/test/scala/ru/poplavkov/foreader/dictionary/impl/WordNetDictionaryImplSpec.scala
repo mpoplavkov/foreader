@@ -3,32 +3,34 @@ package ru.poplavkov.foreader.dictionary.impl
 import cats.effect.IO
 import ru.poplavkov.foreader.Generators.generate
 import ru.poplavkov.foreader.SpecBase
-import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
+import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.dictionary.DictionaryEntry.Meaning
+import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
 import ru.poplavkov.foreader.text.{LexicalItem, PartOfSpeech, Token}
 import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.Generators._
+import ru.poplavkov.foreader.vector.VectorsMap
 
 /**
   * @author mpoplavkov
   */
 class WordNetDictionaryImplSpec extends SpecBase {
 
-  private val dictionary: Dictionary[IO] = new WordNetDictionaryImpl
+  private val dictionary: Dictionary[IO] = new WordNetDictionaryImpl(VectorsMap.Empty, Map.empty)
 
   "WordnetDictionaryImpl" should {
     "extract dictionary entry for single word" in {
       val word = w"apple"
 
       val expectedMeaning1 = Meaning(
-        id = "apple_7755101",
+        id = d"apple_7755101",
         definition = "fruit with red or yellow or green skin and sweet to tart crisp whitish flesh",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq.empty,
         synonyms = Seq.empty
       )
       val expectedMeaning2 = Meaning(
-        id = "apple_12654755",
+        id = d"apple_12654755",
         definition = "native Eurasian tree widely cultivated in many varieties for its firm rounded edible fruits",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq.empty,
@@ -45,14 +47,14 @@ class WordNetDictionaryImplSpec extends SpecBase {
       val words = Seq(w"post", w"office")
 
       val expectedMeaning1 = Meaning(
-        id = "post_office_8162561",
+        id = d"post_office_8162561",
         definition = "a local branch where postal services are available",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq.empty,
         synonyms = Seq("local post office")
       )
       val expectedMeaning2 = Meaning(
-        id = "post_office_8162285",
+        id = d"post_office_8162285",
         definition = "an independent agency of the federal government responsible for mail delivery (and sometimes " +
           "telecommunications) between individuals and businesses in the United States",
         partOfSpeech = Some(PartOfSpeech.Noun),
@@ -60,7 +62,7 @@ class WordNetDictionaryImplSpec extends SpecBase {
         synonyms = Seq("United States Post Office", "US Post Office", "Post Office", "PO")
       )
       val expectedMeaning3 = Meaning(
-        id = "post_office_488337",
+        id = d"post_office_488337",
         definition = "a children's game in which kisses are exchanged for pretended letters",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq.empty,
@@ -82,14 +84,14 @@ class WordNetDictionaryImplSpec extends SpecBase {
       val word = w"book"
 
       val expectedMeaning1 = Meaning(
-        id = "book_680696",
+        id = d"book_680696",
         definition = "engage for a performance",
         partOfSpeech = Some(PartOfSpeech.Verb),
         examples = Seq("Her agent had booked her for several concerts in Tokyo"),
         synonyms = Seq.empty
       )
       val expectedMeaning2 = Meaning(
-        id = "book_2503969",
+        id = d"book_2503969",
         definition = "arrange for and reserve (something for someone else) in advance",
         partOfSpeech = Some(PartOfSpeech.Verb),
         examples = Seq(
@@ -100,14 +102,14 @@ class WordNetDictionaryImplSpec extends SpecBase {
         synonyms = Seq("reserve", "hold")
       )
       val expectedMeaning3 = Meaning(
-        id = "book_2503785",
+        id = d"book_2503785",
         definition = "record a charge in a police register",
         partOfSpeech = Some(PartOfSpeech.Verb),
         examples = Seq("The policeman booked her when she tried to solicit a man"),
         synonyms = Seq.empty
       )
       val expectedMeaning4 = Meaning(
-        id = "book_2605751",
+        id = d"book_2605751",
         definition = "register in a hotel booker",
         partOfSpeech = Some(PartOfSpeech.Verb),
         examples = Seq.empty,

@@ -7,6 +7,7 @@ import cats.implicits._
 import com.softwaremill.tagging._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.ClusterToDefinitionMapper.MeaningClusterDist
+import ru.poplavkov.foreader.Globals.DictionaryMeaningId
 import ru.poplavkov.foreader.dictionary.Dictionary
 import ru.poplavkov.foreader.dictionary.DictionaryEntry.Meaning
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
@@ -23,7 +24,7 @@ import scala.language.higherKinds
   */
 class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.English) {
 
-  private val dictionary: Dictionary[F] = new WordNetDictionaryImpl[F]
+  private val dictionary: Dictionary[F] = new WordNetDictionaryImpl[F](VectorsMap.Empty, Map.empty)
   private val tokenExtractor: TokenExtractor[F] = new CoreNlpTokenExtractor[F](language)
   private var meaningsWithoutClusterCounter = 0
 
@@ -36,7 +37,7 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
       meaningsToClusters <- wordPosToClusters.toList.traverse { case (wordPos, clusters) =>
         meaningIdToClusterMap(wordPos, clusters, wordPosToClusters, vectorsMap, contextLen)
       }
-      allMeaningsToClusters = meaningsToClusters.reduce(CollectionUtil.mergeMapsWithUniqueKeys[String, MathVector])
+      allMeaningsToClusters = meaningsToClusters.reduce(CollectionUtil.mergeMapsWithUniqueKeys[DictionaryMeaningId, MathVector])
       _ <- info(s"Meanings without mapped cluster count = $meaningsWithoutClusterCounter")
       _ <- info(s"Mapping from meanings to clusters created. Flushing to ${outFile.getAbsolutePath}")
       _ <- writeToFileJson(outFile, allMeaningsToClusters)
@@ -47,7 +48,7 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
                                     clusters: Seq[MathVector],
                                     wordPosToClusters: WordToVectorsMap,
                                     vectorsMap: VectorsMap,
-                                    contextLen: Int): F[Map[String, MathVector]] =
+                                    contextLen: Int): F[Map[DictionaryMeaningId, MathVector]] =
     for {
       entry <- dictionary.getDefinition(wordPos.word, wordPos.pos).value
       meanings = entry.toSeq.flatMap(_.meanings)
@@ -71,7 +72,7 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
 
   @tailrec
   private def meaningToClosestCluster(sortedMeaningClusterDist: Seq[MeaningClusterDist],
-                                      alreadyFound: Map[String, MathVector] = Map.empty): Map[String, MathVector] = {
+                                      alreadyFound: Map[DictionaryMeaningId, MathVector] = Map.empty): Map[DictionaryMeaningId, MathVector] = {
     sortedMeaningClusterDist.headOption match {
       case Some((meaningId, cluster, _)) =>
         val meaningToClusterUpdated = alreadyFound + (meaningId -> cluster)
@@ -132,7 +133,7 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
 
 object ClusterToDefinitionMapper extends IOApp {
 
-  type MeaningClusterDist = (String, MathVector, Float)
+  type MeaningClusterDist = (DictionaryMeaningId, MathVector, Float)
 
   private val mapper = new ClusterToDefinitionMapper[IO]
   private val lastContextVectorsDir: File = new File(LocalDir)

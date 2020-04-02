@@ -1,16 +1,20 @@
-package ru.poplavkov.foreader
+package ru.poplavkov.foreader.stages
 
 import java.io.File
 
 import cats.effect.{ExitCode, IO, IOApp, Sync}
-import cats.implicits._
+import cats.instances.list._
+import cats.syntax.flatMap._
+import cats.syntax.functor._
+import cats.syntax.traverse._
 import com.softwaremill.tagging._
 import io.circe.generic.auto._
-import ru.poplavkov.foreader.ClusterToDefinitionMapper.MeaningClusterDist
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
+import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.Dictionary
 import ru.poplavkov.foreader.dictionary.DictionaryEntry.Meaning
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
+import ru.poplavkov.foreader.stages.ClusterToDefinitionMapper.MeaningClusterDist
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
 import ru.poplavkov.foreader.text.{PartOfSpeech, Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}

@@ -36,7 +36,7 @@ class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextExtract
               tokensToLexicalItemsInternal(
                 newRest,
                 item :: resultReversed,
-                word :: tokensBeforeReversed
+                item.words.reverse.toList ++ tokensBeforeReversed
               )
             case None =>
               tokensToLexicalItemsInternal(

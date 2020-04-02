@@ -6,8 +6,8 @@ package ru.poplavkov.foreader.text
 trait ContextExtractor {
 
   /**
-    * Extracts context for the tokens starts at `startIndex`
-    * and ends at `endIndex`
+    * Extracts context for the tokens starting at `startIndex`
+    * and ending at `endIndex`
     */
   def extractContext(tokens: Seq[Token], startIndex: Int, endIndex: Int): TextContext
 
@@ -15,8 +15,8 @@ trait ContextExtractor {
     extractContext(tokens, elementIndex, elementIndex)
 
   /**
-    * Extracts context given reversed Seq of tokens preceded some
-    * item and Seq of tokens followed that item
+    * Extracts context using tokens in reverse order preceding an
+    * item and tokens following this item
     *
     * @param beforeReversed preceded tokens
     * @param after          followed tokens

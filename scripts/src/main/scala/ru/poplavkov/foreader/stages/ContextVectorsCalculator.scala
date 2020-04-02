@@ -7,6 +7,7 @@ import cats.instances.list._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
+import io.circe.generic.auto._
 import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
@@ -24,14 +25,16 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                             vectorsMap: VectorsMap,
                                             contextLen: Int) {
 
-  def calculate(corpus: File): F[WordToVectorsMap] = {
+  def calculate(corpus: File, dirForSeparateFiles: File): F[WordToVectorsMap] = {
     for {
-      separateMaps <- corpus.listFiles.toList.traverse(calculateForOneFile)
-    } yield separateMaps.reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
+      _ <- corpus.listFiles.toList.traverse(calculateForOneFile(_, dirForSeparateFiles))
+      map <-combineVectorFiles(dirForSeparateFiles)
+    } yield map
 
   }
 
-  private def calculateForOneFile(file: File): F[WordToVectorsMap] = {
+  private def calculateForOneFile(file: File, targetDir: File): F[Unit] = {
+    val outFile = FileUtil.childFile(targetDir, file.getName)
     val text = FileUtil.readFile(file.toPath)
     val fileSizeMb = file.length.toFloat / 1024 / 1024
     for {
@@ -39,7 +42,8 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
 
       tokens <- tokenExtractor.extract(text)
       map <- findContextVectors(tokens, vectorsMap)
-    } yield map
+      _ <- writeToFileJson(outFile, map)
+    } yield ()
 
   }
 
@@ -50,6 +54,12 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
         WordWithPos(lemma, pos) -> contextVectorByIndex(tokens, ind, vectorsMap, contextLen)
       }
       .groupBy(_._1).mapValues(_.map(_._2))
+  }
+
+  private def combineVectorFiles(dir: File): F[WordToVectorsMap] = Sync[F].delay {
+    dir.listFiles
+      .map(readJsonFile[WordToVectorsMap])
+      .reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
   }
 
 }

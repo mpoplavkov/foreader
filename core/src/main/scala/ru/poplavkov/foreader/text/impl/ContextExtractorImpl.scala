@@ -17,6 +17,11 @@ class ContextExtractorImpl(contextLen: Int) extends ContextExtractor {
     TextContext.SurroundingWords(left, right)
   }
 
+  override def extractContext(beforeReversed: Seq[Token], after: Seq[Token]): TextContext = {
+    val left = takeWords(beforeReversed, 0, contextLen, _ + 1)
+    val right = takeWords(after, 0, contextLen, _ + 1)
+    TextContext.SurroundingWords(left, right)
+  }
 }
 
 object ContextExtractorImpl {

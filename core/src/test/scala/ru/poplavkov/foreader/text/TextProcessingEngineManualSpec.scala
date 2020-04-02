@@ -47,7 +47,7 @@ class TextProcessingEngineManualSpec extends SpecBase {
       )
       lexicalItemFilter = new CompositeLexicalItemFilter(Seq(stopwordsFilter, stopPhrasesFilter))
         with LoggedLexicalItemFilter
-      itemExtractor = new LexicalItemExtractorImpl[F](mweSet)
+      itemExtractor = new LexicalItemExtractorImpl[F](mweSet, new ContextExtractorImpl(3))
       levelDeterminator = new EmptyLevelDeterminator[F]
     } yield
       new TextProcessingEngineImpl[F](

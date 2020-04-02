@@ -1,32 +1,25 @@
 package ru.poplavkov.foreader.stages
 
-import java.io.File
-
-import cats.effect.{ExitCode, IO, IOApp, Sync}
+import cats.effect.Sync
 import cats.instances.list._
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
-import io.circe.generic.auto._
 import ru.poplavkov.foreader.CreateClusterError.{NoMeaningsInDictionary, TooFewUsageExamples}
 import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader._
-import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
-import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
+import ru.poplavkov.foreader.dictionary.Dictionary
+import ru.poplavkov.foreader.vector.MathVector
 
 import scala.language.higherKinds
 
 /**
   * @author mpoplavkov
   */
-class ClustersCreator[F[_] : Sync] {
+class ClustersCreator[F[_] : Sync](dictionary: Dictionary[F]) {
 
-  private val dictionary = new WordNetDictionaryImpl[F](VectorsMap.Empty, Map.empty)
-
-  def createClusters(contextVectorsFile: File): F[Unit] = {
-    val outFile = FileUtil.brotherFile(contextVectorsFile, "clusters.txt")
-    val contextsByWord = readJsonFile[WordToVectorsMap](contextVectorsFile)
+  def createClusters(contextsByWord: WordToVectorsMap): F[WordToVectorsMap] = {
     val wordsCount = contextsByWord.size
     val onePercent = wordsCount / 100
 
@@ -46,10 +39,7 @@ class ClustersCreator[F[_] : Sync] {
       errors = results.collect { case Left(e) => e }
       _ <- logClusteringErrors(errors)
       wordToCentroidsMap = results.collect { case Right((word, centroids)) => word -> centroids }.toMap
-      _ <- info(s"Created clusters for ${wordToCentroidsMap.size} words. Flushing")
-      _ <- writeToFileJson(outFile, wordToCentroidsMap)
-      _ <- info(s"Successfully wrote data to ${outFile.getAbsolutePath}")
-    } yield ()
+    } yield wordToCentroidsMap
 
   }
 
@@ -78,17 +68,4 @@ class ClustersCreator[F[_] : Sync] {
       _ <- info(s"Too few examples of ${tooFewExamples.size} words: $tooFewMsg")
     } yield ()
   }
-}
-
-object ClustersCreator extends IOApp {
-
-  val creator = new ClustersCreator[IO]
-  val lastContextVectorsDir: File = new File(LocalDir)
-    .listFiles
-    .filter(_.getName.startsWith("context_vectors"))
-    .maxBy(_.getName)
-  val contextVectorsFile: File = FileUtil.childFile(lastContextVectorsDir, "context_vectors.txt")
-
-  override def run(args: List[String]): IO[ExitCode] =
-    creator.createClusters(contextVectorsFile).map(_ => ExitCode.Success)
 }

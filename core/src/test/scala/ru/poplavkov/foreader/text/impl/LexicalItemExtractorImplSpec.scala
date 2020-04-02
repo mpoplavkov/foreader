@@ -3,7 +3,7 @@ package ru.poplavkov.foreader.text.impl
 import org.scalacheck.Gen
 import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.SpecBase
-import ru.poplavkov.foreader.SpecBase.CovariantId
+import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.dictionary.MweSet
 import ru.poplavkov.foreader.text.LexicalItem.{MultiWordExpression, SingleWord}
 import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, Token}
@@ -236,11 +236,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       actualMwe shouldBe expectedMwe
     }
 
-  }
-
-  private def genWords(min: Int, max: Int): Seq[Token.Word] = {
-    val count = generate(Gen.chooseNum(min, max))
-    (1 to count).map(_ => generate[Token.Word])
   }
 
   implicit class RichSeqItems(items: Seq[LexicalItem]) {

@@ -12,13 +12,13 @@ import scala.annotation.tailrec
 class ContextExtractorImpl(contextLen: Int) extends ContextExtractor {
 
   override def extractContext(tokens: Seq[Token], startIndex: Int, endIndex: Int): TextContext = {
-    val left = takeWords(tokens, startIndex, contextLen, _ - 1)
-    val right = takeWords(tokens, endIndex, contextLen, _ + 1)
+    val left = takeWords(tokens, startIndex - 1, contextLen, _ - 1).reverse
+    val right = takeWords(tokens, endIndex + 1, contextLen, _ + 1)
     TextContext.SurroundingWords(left, right)
   }
 
   override def extractContext(beforeReversed: Seq[Token], after: Seq[Token]): TextContext = {
-    val left = takeWords(beforeReversed, 0, contextLen, _ + 1)
+    val left = takeWords(beforeReversed, 0, contextLen, _ + 1).reverse
     val right = takeWords(after, 0, contextLen, _ + 1)
     TextContext.SurroundingWords(left, right)
   }

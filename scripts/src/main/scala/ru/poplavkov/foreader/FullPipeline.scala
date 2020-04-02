@@ -4,12 +4,14 @@ import java.io.File
 import java.time.Instant
 
 import cats.effect.{ExitCode, IO, IOApp}
-import ru.poplavkov.foreader.stages.{ClustersCreator, ContextVectorsCalculator}
-import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
-import ru.poplavkov.foreader.word2vec.VectorsExtractor
+import io.circe.generic.auto._
+import ru.poplavkov.foreader.Globals.DictionaryMeaningId
 import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
-import ru.poplavkov.foreader.vector.VectorsMap
+import ru.poplavkov.foreader.stages.{ClusterToDefinitionMapper, ClustersCreator, ContextVectorsCalculator}
+import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
+import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
+import ru.poplavkov.foreader.word2vec.VectorsExtractor
 
 /**
   * @author mpoplavkov
@@ -17,12 +19,13 @@ import ru.poplavkov.foreader.vector.VectorsMap
 object FullPipeline extends IOApp {
 
   private val id = Instant.now.toEpochMilli
-  private val WorkDir: File = new File(s"$LocalDir/context_vectors_$id")
-  private val SeparateFilesDir: File = FileUtil.childFile(WorkDir, "separate")
-  private val VectorsFile = new File(s"$LocalDir/vectors.txt")
-  private val CorpusDir = new File(s"$LocalDir/corpus")
-  WorkDir.mkdir()
-  SeparateFilesDir.mkdir()
+  private val workDir: File = new File(s"$LocalDir/context_vectors_$id")
+  private val separateFilesDir: File = FileUtil.childFile(workDir, "separate")
+  private val vectorsFile = new File(s"$LocalDir/vectors.txt")
+  private val corpusDir = new File(s"$LocalDir/corpus")
+  private val outFile = FileUtil.childFile(workDir, "clusteredDefinitions.txt")
+  workDir.mkdir()
+  separateFilesDir.mkdir()
 
   private val contextLen = 3
   private val tokenExtractor = new CoreNlpTokenExtractor[IO](Language.English)
@@ -30,15 +33,19 @@ object FullPipeline extends IOApp {
   private val clustersCreator = new ClustersCreator[IO](dictionary)
 
   override def run(args: List[String]): IO[ExitCode] = for {
-    vectorsMap <- VectorsExtractor.extractVectors[IO](VectorsFile.toPath)
+    vectorsMap <- VectorsExtractor.extractVectors[IO](vectorsFile.toPath)
     calculator = new ContextVectorsCalculator[IO](tokenExtractor, vectorsMap, contextLen)
+    mapper = new ClusterToDefinitionMapper[IO](dictionary, tokenExtractor, vectorsMap, contextLen)
     _ <- info[IO]("Vectors extracted")
-    wordToVectorsMap <- calculator.calculate(VectorsFile, CorpusDir)
+    wordToVectorsMap <- calculator.calculate(vectorsFile, corpusDir)
     _ <- info[IO]("Context vectors calculated")
 
     wordToCentroidsMap <- clustersCreator.createClusters(wordToVectorsMap)
     _ <- info[IO](s"Created clusters for ${wordToCentroidsMap.size} words")
 
+    dictionaryToClusterMap <- mapper.mapClusters(wordToCentroidsMap)
+    _ <- info[IO](s"Mapping from meanings to clusters created")
+    _ <- writeToFileJson[IO, Map[DictionaryMeaningId, MathVector]](outFile, dictionaryToClusterMap)
 
   } yield ExitCode.Success
 

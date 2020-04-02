@@ -1,25 +1,19 @@
 package ru.poplavkov.foreader.stages
 
-import java.io.File
-
-import cats.effect.{ExitCode, IO, IOApp, Sync}
+import cats.effect.Sync
 import cats.instances.list._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import com.softwaremill.tagging._
-import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
 import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.Dictionary
 import ru.poplavkov.foreader.dictionary.DictionaryEntry.Meaning
-import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
 import ru.poplavkov.foreader.stages.ClusterToDefinitionMapper.MeaningClusterDist
-import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
 import ru.poplavkov.foreader.text.{PartOfSpeech, Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
-import ru.poplavkov.foreader.word2vec.VectorsExtractor
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -27,26 +21,21 @@ import scala.language.higherKinds
 /**
   * @author mpoplavkov
   */
-class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.English, contextLen: Int = 3) {
+class ClusterToDefinitionMapper[F[_] : Sync](dictionary: Dictionary[F],
+                                             tokenExtractor: TokenExtractor[F],
+                                             vectorsMap: VectorsMap,
+                                             contextLen: Int) {
 
-  private val dictionary: Dictionary[F] = new WordNetDictionaryImpl[F](VectorsMap.Empty, Map.empty)
-  private val tokenExtractor: TokenExtractor[F] = new CoreNlpTokenExtractor[F](language)
   private var meaningsWithoutClusterCounter = 0
 
-  def mapClusters(clustersFile: File, vectorsFile: File): F[Unit] = {
-    val outFile = FileUtil.brotherFile(clustersFile, "clusteredDefinitions.txt")
-    val wordPosToClusters = readJsonFile[WordToVectorsMap](clustersFile)
-
+  def mapClusters(wordPosToClusters: WordToVectorsMap): F[Map[DictionaryMeaningId, MathVector]] = {
     for {
-      vectorsMap <- VectorsExtractor.extractVectors[F](vectorsFile.toPath)
       meaningsToClusters <- wordPosToClusters.toList.traverse { case (wordPos, clusters) =>
         meaningIdToClusterMap(wordPos, clusters, wordPosToClusters, vectorsMap)
       }
-      allMeaningsToClusters = meaningsToClusters.reduce(CollectionUtil.mergeMapsWithUniqueKeys[DictionaryMeaningId, MathVector])
       _ <- info(s"Meanings without mapped cluster count = $meaningsWithoutClusterCounter")
-      _ <- info(s"Mapping from meanings to clusters created. Flushing to ${outFile.getAbsolutePath}")
-      _ <- writeToFileJson(outFile, allMeaningsToClusters)
-    } yield ()
+      allMeaningsToClusters = meaningsToClusters.reduce(CollectionUtil.mergeMapsWithUniqueKeys[DictionaryMeaningId, MathVector])
+    } yield allMeaningsToClusters
   }
 
   private def meaningIdToClusterMap(wordPos: WordWithPos,
@@ -134,18 +123,8 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
 
 }
 
-object ClusterToDefinitionMapper extends IOApp {
+object ClusterToDefinitionMapper {
 
   type MeaningClusterDist = (DictionaryMeaningId, MathVector, Float)
 
-  private val mapper = new ClusterToDefinitionMapper[IO]
-  private val lastContextVectorsDir: File = new File(LocalDir)
-    .listFiles
-    .filter(_.getName.startsWith("context_vectors"))
-    .maxBy(_.getName)
-  private val clustersFile: File = FileUtil.childFile(lastContextVectorsDir, "clusters.txt")
-  private val vectorsFile = new File(s"$LocalDir/vectors.txt")
-
-  override def run(args: List[String]): IO[ExitCode] =
-    mapper.mapClusters(clustersFile, vectorsFile).map(_ => ExitCode.Success)
 }

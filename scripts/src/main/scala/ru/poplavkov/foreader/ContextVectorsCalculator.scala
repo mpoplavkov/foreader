@@ -88,7 +88,7 @@ object ContextVectorsCalculator extends IOApp {
   private val calculator = new ContextVectorsCalculator[IO]
 
   private val VectorsFile = new File(s"$LocalDir/vectors.txt")
-  private val CorpusDir = new File(s"$LocalDir/my_corpus")
+  private val CorpusDir = new File(s"$LocalDir/corpus")
 
   override def run(args: List[String]): IO[ExitCode] =
     calculator.calculate(VectorsFile, CorpusDir).map(_ => ExitCode.Success)

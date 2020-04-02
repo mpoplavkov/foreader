@@ -10,6 +10,7 @@ import cats.syntax.traverse._
 import com.softwaremill.tagging._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
+import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.Dictionary
 import ru.poplavkov.foreader.dictionary.DictionaryEntry.Meaning
@@ -26,7 +27,7 @@ import scala.language.higherKinds
 /**
   * @author mpoplavkov
   */
-class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.English) {
+class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.English, contextLen: Int = 3) {
 
   private val dictionary: Dictionary[F] = new WordNetDictionaryImpl[F](VectorsMap.Empty, Map.empty)
   private val tokenExtractor: TokenExtractor[F] = new CoreNlpTokenExtractor[F](language)
@@ -109,7 +110,7 @@ class ClusterToDefinitionMapper[F[_] : Sync](language: Language = Language.Engli
         wordIndOpt = tokens.zipWithIndex.collectFirst {
           case (Token.Word(_, _, word, pos), ind) if WordWithPos(word, pos) == wordPos => ind
         }
-      } yield wordIndOpt.map(contextVectorByIndex(tokens, _, vectorsMap))
+      } yield wordIndOpt.map(contextVectorByIndex(tokens, _, vectorsMap, contextLen))
     }.map(_.flatten)
   }
 

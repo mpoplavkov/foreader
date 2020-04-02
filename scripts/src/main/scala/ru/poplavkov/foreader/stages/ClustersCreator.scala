@@ -4,12 +4,13 @@ import java.io.File
 
 import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.instances.list._
+import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.applicative._
 import cats.syntax.traverse._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.CreateClusterError.{NoMeaningsInDictionary, TooFewUsageExamples}
+import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}

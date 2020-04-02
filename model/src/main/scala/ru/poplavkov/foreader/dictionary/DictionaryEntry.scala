@@ -1,5 +1,6 @@
 package ru.poplavkov.foreader.dictionary
 
+import ru.poplavkov.foreader.Globals.DictionaryMeaningId
 import ru.poplavkov.foreader.dictionary.DictionaryEntry._
 import ru.poplavkov.foreader.text.PartOfSpeech
 
@@ -19,7 +20,7 @@ case class DictionaryEntry(meanings: Seq[Meaning]) {
 
 object DictionaryEntry {
 
-  case class Meaning(id: String,
+  case class Meaning(id: DictionaryMeaningId,
                      definition: String,
                      partOfSpeech: Option[PartOfSpeech],
                      examples: Seq[String],

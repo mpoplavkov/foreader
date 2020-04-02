@@ -33,6 +33,10 @@ object SpecBase {
       require(args.isEmpty)
       sc.raw().taggedWith[WordStrTag]
     }
-  }
 
+    def d(args: Any*): DictionaryMeaningId = {
+      require(args.isEmpty)
+      sc.raw().taggedWith[DictionaryMeaningIdTag]
+    }
+  }
 }

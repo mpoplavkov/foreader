@@ -8,7 +8,7 @@ import com.softwaremill.tagging._
 import io.circe.Json
 import io.circe.parser.parse
 import ru.poplavkov.foreader.FileUtil._
-import ru.poplavkov.foreader.Globals.WordStrTag
+import ru.poplavkov.foreader.Globals.{DictionaryMeaningIdTag, WordStrTag}
 import ru.poplavkov.foreader.dictionary.wordset.WordsetDictionaryMapExtractor._
 import ru.poplavkov.foreader.dictionary.{DictionaryEntry, DictionaryMap, DictionaryMapExtractor}
 import ru.poplavkov.foreader.text.PartOfSpeech
@@ -88,7 +88,7 @@ object WordsetDictionaryMapExtractor {
         .flatMap(_.asString)
 
       DictionaryEntry.Meaning(
-        id = id,
+        id = id.taggedWith[DictionaryMeaningIdTag],
         definition = definition,
         partOfSpeech = partOfSpeechOpt,
         examples = examples,

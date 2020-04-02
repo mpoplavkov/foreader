@@ -13,4 +13,8 @@ object Globals {
 
   type WordStr = String @@ WordStrTag
 
+  trait DictionaryMeaningIdTag
+
+  type DictionaryMeaningId = String @@ DictionaryMeaningIdTag
+
 }

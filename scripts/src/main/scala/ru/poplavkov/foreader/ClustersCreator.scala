@@ -7,7 +7,7 @@ import cats.implicits._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.CreateClusterError.{NoMeaningsInDictionary, TooFewUsageExamples}
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
-import ru.poplavkov.foreader.vector.MathVector
+import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
 
 import scala.language.higherKinds
 
@@ -16,7 +16,7 @@ import scala.language.higherKinds
   */
 class ClustersCreator[F[_] : Sync] {
 
-  private val dictionary = new WordNetDictionaryImpl[F]
+  private val dictionary = new WordNetDictionaryImpl[F](VectorsMap.Empty, Map.empty)
 
   def createClusters(contextVectorsFile: File): F[Unit] = {
     val outFile = FileUtil.brotherFile(contextVectorsFile, "clusters.txt")

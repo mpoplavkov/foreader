@@ -3,7 +3,7 @@ package ru.poplavkov.foreader.text.impl
 import org.scalacheck.Gen
 import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.SpecBase
-import ru.poplavkov.foreader.SpecBase.CovariantId
+import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.dictionary.MweSet
 import ru.poplavkov.foreader.text.LexicalItem.{MultiWordExpression, SingleWord}
 import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, Token}
@@ -13,9 +13,12 @@ import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContex
   */
 class LexicalItemExtractorImplSpec extends SpecBase {
 
-  val mweSet: MweSet[CovariantId] = mock[MweSet[CovariantId]]
+  private val mweSet: MweSet[CovariantId] = mock[MweSet[CovariantId]]
+  private val contextLen = generate(Gen.chooseNum(1, 5))
 
-  def lexicalItemExtractor: LexicalItemExtractor[CovariantId] = new LexicalItemExtractorImpl(mweSet)
+  private val contextExtractor = new ContextExtractorImpl(contextLen)
+
+  def lexicalItemExtractor: LexicalItemExtractor[CovariantId] = new LexicalItemExtractorImpl(mweSet, contextExtractor)
 
   "LexicalItemExtractorImpl" should {
 
@@ -198,8 +201,8 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val expected = words.indices.map { i =>
         val (beforeWords, otherWords) = words.splitAt(i)
         val word = otherWords.head
-        val before = beforeWords.map(_.original).takeRight(LexicalItemExtractorImpl.WordsBeforeToContext)
-        val after = otherWords.tail.map(_.original).take(LexicalItemExtractorImpl.WordsAfterToContext)
+        val before = beforeWords.map(_.lemma).takeRight(contextLen)
+        val after = otherWords.tail.map(_.lemma).take(contextLen)
         LexicalItem.SingleWord(word, TextContext.SurroundingWords(before, after))
       }
 
@@ -207,8 +210,8 @@ class LexicalItemExtractorImplSpec extends SpecBase {
     }
 
     "extract mwe with context" in {
-      val before = genWords(1, LexicalItemExtractorImpl.WordsBeforeToContext)
-      val after = genWords(1, LexicalItemExtractorImpl.WordsAfterToContext)
+      val before = genWords(1, contextLen)
+      val after = genWords(1, contextLen)
       val firstMweWord = generate[Token.Word]
       val secondMweWord = generate[Token.Word]
       val sentence = (before :+ firstMweWord :+ secondMweWord) ++ after
@@ -222,7 +225,7 @@ class LexicalItemExtractorImplSpec extends SpecBase {
 
       val expectedMwe = LexicalItem.MultiWordExpression(
         Seq(firstMweWord, secondMweWord),
-        TextContext.SurroundingWords(before.map(_.original), after.map(_.original))
+        TextContext.SurroundingWords(before.map(_.lemma), after.map(_.lemma))
       )
 
       val actualMwe = lexicalItemExtractor.lexicalItemsFromTokens(sentence).collect {
@@ -233,12 +236,6 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       actualMwe shouldBe expectedMwe
     }
 
-
-  }
-
-  private def genWords(min: Int, max: Int): Seq[Token.Word] = {
-    val count = generate(Gen.chooseNum(min, max))
-    (1 to count).map(_ => generate[Token.Word])
   }
 
   implicit class RichSeqItems(items: Seq[LexicalItem]) {

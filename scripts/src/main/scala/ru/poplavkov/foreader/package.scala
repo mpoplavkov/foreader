@@ -6,6 +6,8 @@ import cats.effect.Sync
 import io.circe.parser.decode
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
+import ru.poplavkov.foreader.text.impl.ContextExtractorImpl
+import ru.poplavkov.foreader.text.{TextContext, Token}
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
 
 import scala.language.{higherKinds, implicitConversions}
@@ -26,12 +28,15 @@ package object foreader {
   def writeToFileJson[F[_] : Sync, T: Encoder](file: File, t: T): F[Unit] =
     FileUtil.writeToFile(file, t.asJson.spaces2)
 
-  def contextVectorByIndex(wordsWithPos: Seq[WordWithPos],
+  private val contextExtractor = new ContextExtractorImpl(contextLen = 3)
+
+  def contextVectorByIndex(tokens: Seq[Token],
                            index: Int,
-                           vectorsMap: VectorsMap,
-                           contextLen: Int): MathVector = {
-    val surroundingWords =
-      CollectionUtil.surroundingElements(wordsWithPos.map(_.word), index, contextLen, contextLen)
+                           vectorsMap: VectorsMap): MathVector = {
+    val surroundingWords = contextExtractor.extractContext(tokens, index) match {
+      case TextContext.Empty => Seq.empty
+      case TextContext.SurroundingWords(before, after) => before ++ after
+    }
     val vectors = surroundingWords.flatMap(vectorsMap.getVector)
     VectorUtil.avgVector(vectorsMap.dimension, vectors)
   }

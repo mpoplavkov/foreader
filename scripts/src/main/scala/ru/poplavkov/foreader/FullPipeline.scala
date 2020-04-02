@@ -18,14 +18,13 @@ import ru.poplavkov.foreader.word2vec.VectorsExtractor
   */
 object FullPipeline extends IOApp {
 
+  private val corpusName = "my_corpus"
   private val id = Instant.now.toEpochMilli
   private val workDir: File = new File(s"$LocalDir/context_vectors_$id")
-  private val separateFilesDir: File = FileUtil.childFile(workDir, "separate")
-  private val vectorsFile = new File(s"$LocalDir/vectors.txt")
-  private val corpusDir = new File(s"$LocalDir/corpus")
-  private val outFile = FileUtil.childFile(workDir, "clusteredDefinitions.txt")
   workDir.mkdir()
-  separateFilesDir.mkdir()
+  private val vectorsFile = new File(s"$LocalDir/vectors.txt")
+  private val corpusDir = new File(s"$LocalDir/$corpusName")
+  private val outFile = FileUtil.childFile(workDir, "clusteredDefinitions.txt")
 
   private val contextLen = 3
   private val tokenExtractor = new CoreNlpTokenExtractor[IO](Language.English)
@@ -37,7 +36,7 @@ object FullPipeline extends IOApp {
     calculator = new ContextVectorsCalculator[IO](tokenExtractor, vectorsMap, contextLen)
     mapper = new ClusterToDefinitionMapper[IO](dictionary, tokenExtractor, vectorsMap, contextLen)
     _ <- info[IO]("Vectors extracted")
-    wordToVectorsMap <- calculator.calculate(vectorsFile, corpusDir)
+    wordToVectorsMap <- calculator.calculate(corpusDir)
     _ <- info[IO]("Context vectors calculated")
 
     wordToCentroidsMap <- clustersCreator.createClusters(wordToVectorsMap)

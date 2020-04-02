@@ -6,7 +6,7 @@ import cats.syntax.flatMap._
 import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.dictionary.MweSet
 import ru.poplavkov.foreader.text.impl.LexicalItemExtractorImpl._
-import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, Token}
+import ru.poplavkov.foreader.text.{ContextExtractor, LexicalItem, LexicalItemExtractor, TextContext, Token}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -14,7 +14,7 @@ import scala.language.higherKinds
 /**
   * @author mpoplavkov
   */
-class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextLen: Int)
+class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextExtractor: ContextExtractor)
   extends LexicalItemExtractor[F] {
 
   override def lexicalItemsFromTokens(tokens: Seq[Token]): F[Seq[LexicalItem]] =
@@ -23,9 +23,9 @@ class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextLen: In
   // TODO: check if it would not fail with StackOverflow for huge inputs
   private def tokensToLexicalItemsInternal(tokens: List[Token],
                                            resultReversed: List[LexicalItem] = Nil,
-                                           prevContext: List[WordStr] = Nil): F[Seq[LexicalItem]] = {
+                                           tokensBeforeReversed: List[Token] = Nil): F[Seq[LexicalItem]] = {
 
-    def ctxt: Seq[Token] => TextContext = createContext(prevContext, _)
+    def ctxt: Seq[Token] => TextContext = contextExtractor.extractContext(tokensBeforeReversed, _)
 
     tokens match {
       case (word: Token.Word) :: rest =>
@@ -36,47 +36,29 @@ class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextLen: In
               tokensToLexicalItemsInternal(
                 newRest,
                 item :: resultReversed,
-                addToPrevContext(prevContext, item.lemmas.toList))
+                item.words.reverse.toList ++ tokensBeforeReversed
+              )
             case None =>
               tokensToLexicalItemsInternal(
                 rest,
                 LexicalItem.SingleWord(word, ctxt(rest)) :: resultReversed,
-                addToPrevContext(prevContext, List(word.lemma))
+                word :: tokensBeforeReversed
               )
           }
         }
-      case Token.Punctuation(_, mark) :: rest if mark.isEndOfSentence =>
-        tokensToLexicalItemsInternal(rest, resultReversed, Nil)
-      case _ :: rest =>
-        tokensToLexicalItemsInternal(rest, resultReversed, prevContext)
+      case head :: rest =>
+        tokensToLexicalItemsInternal(rest, resultReversed, head :: tokensBeforeReversed)
       case Nil =>
         resultReversed.reverse.pure[F]
     }
   }
-
-  private def addToPrevContext(prevContext: List[WordStr], toAdd: List[WordStr]): List[WordStr] =
-    (prevContext ++ toAdd).takeRight(contextLen)
-
-  private def nextTokensToContext(tokens: Seq[Token]): Seq[WordStr] =
-    tokens.view
-      .collect { case Token.Word(_, _, lemma, _) => lemma }
-      .take(contextLen)
-      .force
-
-  private def createContext(prevWordsOfContextLen: Seq[WordStr], rest: Seq[Token]) =
-    TextContext.SurroundingWords(prevWordsOfContextLen, nextTokensToContext(rest))
-
 }
 
 object LexicalItemExtractorImpl {
 
   private def firstFoundMweAndRest(tokens: List[Token],
-                                   mweSet: Set[Seq[WordStr]]): Option[(List[Token.Word], List[Token])] =
-  if (mweSet.isEmpty) {
-    // for optimization purpose - to not extract starting words if mweSet is empty
-    None
-  } else {
-    val (words, restTokens) = extractStartingWords(tokens, limit = 10)
+                                   mweSet: Set[Seq[WordStr]]): Option[(List[Token.Word], List[Token])] = {
+    lazy val (words, restTokens) = extractStartingWords(tokens, limit = 10)
     mweSet.foldLeft[Option[(List[Token.Word], List[Token])]](None) {
       case (None, mwe) =>
         removeSubsequenceInOrder(words, mwe.toList).map { case (mweFound, withoutMwe) =>

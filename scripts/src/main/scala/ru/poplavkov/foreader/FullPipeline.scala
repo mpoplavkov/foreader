@@ -35,7 +35,7 @@ object FullPipeline extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = for {
     vectorsMap <- VectorsExtractor.extractVectors[IO](vectorsFile.toPath)
-    calculator = new ContextVectorsCalculator[IO](tokenExtractor, vectorsMap, contextLen)
+    calculator = new ContextVectorsCalculator[IO](tokenExtractor, vectorsMap, dictionary, contextLen)
     mapper = new ClusterToDefinitionMapper[IO](dictionary, tokenExtractor, vectorsMap, contextLen)
     _ <- info[IO]("Vectors extracted")
     wordToVectorsMap <- calculator.calculate(corpusDir, separateFilesDir)

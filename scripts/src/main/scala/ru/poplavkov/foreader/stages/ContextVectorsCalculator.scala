@@ -10,6 +10,7 @@ import cats.syntax.traverse._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader._
+import ru.poplavkov.foreader.dictionary.Dictionary
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.VectorsMap
 
@@ -23,12 +24,14 @@ import scala.language.higherKinds
   */
 class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                             vectorsMap: VectorsMap,
+                                            dictionary: Dictionary[F],
                                             contextLen: Int) {
 
   def calculate(corpus: File, dirForSeparateFiles: File): F[WordToVectorsMap] = {
     for {
       _ <- corpus.listFiles.toList.traverse(calculateForOneFile(_, dirForSeparateFiles))
-      map <-combineVectorFiles(dirForSeparateFiles)
+      _ <- info("combining separate files")
+      map <- combineVectorFiles(dirForSeparateFiles)
     } yield map
 
   }
@@ -41,8 +44,11 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       _ <- info(f"Start processing file of size $fileSizeMb%1.2fmb: `${file.getName}`")
 
       tokens <- tokenExtractor.extract(text)
-      map <- findContextVectors(tokens, vectorsMap)
-      _ <- writeToFileJson(outFile, map)
+      contextVectors <- findContextVectors(tokens, vectorsMap)
+      filtered <- contextVectors.toList.traverse { case (wordPos, vectors) =>
+        dictionary.getDefinition(wordPos.word, wordPos.pos).map(_ => (wordPos, vectors)).value
+      }
+      _ <- writeToFileJson(outFile, filtered.flatten.toMap)
     } yield ()
 
   }

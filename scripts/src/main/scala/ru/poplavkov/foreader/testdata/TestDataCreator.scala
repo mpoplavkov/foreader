@@ -1,6 +1,4 @@
-package ru.poplavkov.foreader
-
-import java.io.File
+package ru.poplavkov.foreader.testdata
 
 import cats.effect.Sync
 import cats.instances.list._
@@ -8,10 +6,9 @@ import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
-import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
-import ru.poplavkov.foreader.TestDataCreator._
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
+import ru.poplavkov.foreader.info
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.MathVector
 
@@ -21,14 +18,11 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                    dictionary: Dictionary[F],
                                    meaningToVectorMap: Map[DictionaryMeaningId, MathVector]) {
 
-  def create(inputFile: File, outFile: File, n: Int): F[Unit] = {
-    val text = FileUtil.readFile(inputFile.toPath)
+  def create(text: String, n: Int): F[Seq[TestCase]] =
     for {
       tokens <- tokenExtractor.extract(text)
       cases <- createTestCases(tokens, n)
-      _ <- writeToFileJson(outFile, cases)
-    } yield ()
-  }
+    } yield cases
 
   private def createTestCases(tokens: Seq[Token], n: Int, cases: Seq[TestCase] = Seq.empty): F[Seq[TestCase]] = {
     if (cases.size >= n) {
@@ -76,11 +70,5 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
           }
         }
     }.map(_.flatten)
-
-}
-
-object TestDataCreator {
-
-  case class TestCase(sentence: Seq[Token], word: Token.Word, meanings: Seq[DictionaryEntry.Meaning])
 
 }

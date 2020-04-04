@@ -4,6 +4,8 @@ import java.io.File
 import java.time.Instant
 
 import cats.effect.{ExitCode, IO, IOApp}
+import cats.syntax.traverse._
+import cats.instances.list._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
 import ru.poplavkov.foreader.Util._
@@ -38,10 +40,16 @@ object FullPipeline extends IOApp {
     calculator = new ContextVectorsCalculator[IO](tokenExtractor, vectorsMap, dictionary, contextLen)
     mapper = new ClusterToDefinitionMapper[IO](dictionary, tokenExtractor, vectorsMap, contextLen)
     _ <- info[IO]("Vectors extracted")
-    wordToVectorsMap <- calculator.calculate(corpusDir, separateFilesDir)
+    vectorsFiles <- calculator.calculate(corpusDir, separateFilesDir)
     _ <- info[IO]("Context vectors calculated")
 
-    wordToCentroidsMap <- clustersCreator.createClusters(wordToVectorsMap)
+    centroidsMaps <- vectorsFiles.toList.traverse { file =>
+      val wordToVectorsMap = readJsonFile[WordToVectorsMap](file)
+      info[IO](s"Creating clusters for ${file.getName}").flatMap { _ =>
+        clustersCreator.createClusters(wordToVectorsMap)
+      }
+    }
+    wordToCentroidsMap = centroidsMaps.reduce(CollectionUtil.mergeMapsWithUniqueKeys[WordWithPos, Seq[MathVector]])
     _ <- info[IO](s"Created clusters for ${wordToCentroidsMap.size} words")
 
     dictionaryToClusterMap <- mapper.mapClusters(wordToCentroidsMap)

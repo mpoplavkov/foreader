@@ -21,7 +21,7 @@ class ClustersCreator[F[_] : Sync](dictionary: Dictionary[F]) {
 
   def createClusters(contextsByWord: WordToVectorsMap): F[WordToVectorsMap] = {
     val wordsCount = contextsByWord.size
-    val onePercent = wordsCount / 100
+    val onePercent = wordsCount.toFloat / 100
 
     val createClusterResults: F[List[Either[CreateClusterError, (WordWithPos, Seq[MathVector])]]] =
       contextsByWord.toList.zipWithIndex
@@ -30,7 +30,7 @@ class ClustersCreator[F[_] : Sync](dictionary: Dictionary[F]) {
             entry <- dictionary.getDefinition(word, pos).value
             meanings = entry.toSeq.flatMap(_.meanings)
             centroidsOrErr <- findCentroids(wordPos, meanings.size, vectors)
-            _ <- if (ind % onePercent == 0) info(s"${ind / onePercent}%") else ().pure[F]
+            _ <- logPercent(ind + 1, onePercent)
           } yield centroidsOrErr
         }
 
@@ -67,5 +67,15 @@ class ClustersCreator[F[_] : Sync](dictionary: Dictionary[F]) {
       }.mkString(",")
       _ <- info(s"Too few examples of ${tooFewExamples.size} words: $tooFewMsg")
     } yield ()
+  }
+
+  private def logPercent(index: Int, onePercent: Float): F[Unit] = {
+    val prevPercent = ((index - 1) / onePercent).toInt
+    val newPercent = (index / onePercent).toInt
+    if (prevPercent < newPercent) {
+      info(s"$newPercent%")
+    } else {
+      ().pure[F]
+    }
   }
 }

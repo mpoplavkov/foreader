@@ -4,6 +4,7 @@ import java.io.File
 
 import cats.effect.Sync
 import cats.instances.list._
+import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
@@ -11,6 +12,7 @@ import io.circe.generic.auto._
 import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.Dictionary
+import ru.poplavkov.foreader.stages.ContextVectorsCalculator._
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.VectorsMap
 
@@ -27,28 +29,48 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                             dictionary: Dictionary[F],
                                             contextLen: Int) {
 
-  def calculate(corpus: File, dirForSeparateFiles: File): F[WordToVectorsMap] = {
+  def calculate(corpus: File, dirForSeparateFiles: File): F[Seq[File]] = {
+    val corpusFiles = corpus.listFiles
+
     for {
-      _ <- corpus.listFiles.toList.traverse(calculateForOneFile(_, dirForSeparateFiles))
-      _ <- info("combining separate files")
-      map <- combineVectorFiles(dirForSeparateFiles)
-    } yield map
+      _ <- corpusFiles.zipWithIndex.toList.traverse { case (file, index) =>
+        val fileSizeMb = file.length.toFloat / 1024 / 1024
+        for {
+          _ <- info(f"${index + 1}/${corpusFiles.size} of size $fileSizeMb%1.2fmb: `${file.getName}`")
+          _ <- calculateForOneFile(file, dirForSeparateFiles)
+        } yield ()
+      }
+      allDirs = dirForSeparateFiles.listFiles.filter(_.isDirectory)
+      files <- allDirs.toList.traverse { dir =>
+        for {
+          _ <- info(s"combining separate files from ${dir.getAbsolutePath}")
+          vectorsMap <- combineVectorFiles(dir)
+          out = FileUtil.childFile(dirForSeparateFiles, s"${dir.getName}_context_vectors.txt")
+          _ <- writeToFileJson(out, vectorsMap)
+        } yield out
+      }
+    } yield files
 
   }
 
-  private def calculateForOneFile(file: File, targetDir: File): F[Unit] = {
-    val outFile = FileUtil.childFile(targetDir, file.getName)
+  private def calculateForOneFile(file: File, separateFilesDir: File): F[Unit] = {
     val text = FileUtil.readFile(file.toPath)
-    val fileSizeMb = file.length.toFloat / 1024 / 1024
     for {
-      _ <- info(f"Start processing file of size $fileSizeMb%1.2fmb: `${file.getName}`")
-
       tokens <- tokenExtractor.extract(text)
       contextVectors <- findContextVectors(tokens, vectorsMap)
       filtered <- contextVectors.toList.traverse { case (wordPos, vectors) =>
         dictionary.getDefinition(wordPos.word, wordPos.pos).map(_ => (wordPos, vectors)).value
       }
-      _ <- writeToFileJson(outFile, filtered.flatten.toMap)
+      _ <- filtered.flatten.groupBy(_._1.word.head.toLower).toList.traverse { case (startLetter, wordToVectors) =>
+        if (AllowedStartsOfWord(startLetter)) {
+          val outDir = FileUtil.childFile(separateFilesDir, startLetter.toString)
+          outDir.mkdir()
+          val outFile = FileUtil.childFile(outDir, file.getName)
+          writeToFileJson(outFile, wordToVectors.toMap)
+        } else {
+          ().pure[F]
+        }
+      }
     } yield ()
 
   }
@@ -65,7 +87,26 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
   private def combineVectorFiles(dir: File): F[WordToVectorsMap] = Sync[F].delay {
     dir.listFiles
       .map(readJsonFile[WordToVectorsMap])
-      .reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
+      .reduce { case (map1, map2) =>
+        CollectionUtil.mergeMaps(map1, map2) { (v1, v2) =>
+          if (v1.size + v2.size > MaxArraySize) {
+            println(s"WARN: Array size exceeds $MaxArraySize. Take only a $MaxArraySize elements...")
+            val v2Rest = v2.take(MaxArraySize - v1.size)
+            v1 ++ v2Rest
+          } else {
+            v1 ++ v2
+          }
+        }
+      }
   }
+
+}
+
+object ContextVectorsCalculator {
+
+  private val AllowedStartsOfWord: Set[Char] = ('a' to 'z').toSet
+
+  // To not catch java.lang.OutOfMemoryError: Requested array size exceeds VM limit
+  private val MaxArraySize = 1000000
 
 }

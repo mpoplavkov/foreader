@@ -44,10 +44,12 @@ object FullPipeline extends IOApp {
     _ <- info[IO]("Context vectors calculated")
 
     centroidsMaps <- vectorsFiles.toList.traverse { file =>
-      val wordToVectorsMap = readJsonFile[WordToVectorsMap](file)
-      info[IO](s"Creating clusters for ${file.getName}").flatMap { _ =>
-        clustersCreator.createClusters(wordToVectorsMap)
-      }
+      for {
+        _ <- info[IO](s"Extracting vectors map from ${file.getName}")
+        wordToVectorsMap = readJsonFile[WordToVectorsMap](file)
+        _ <- info[IO](s"Creating clusters for ${file.getName}")
+        clusters <-  clustersCreator.createClusters(wordToVectorsMap)
+      } yield clusters
     }
     wordToCentroidsMap = centroidsMaps.reduce(CollectionUtil.mergeMapsWithUniqueKeys[WordWithPos, Seq[MathVector]])
     _ <- info[IO](s"Created clusters for ${wordToCentroidsMap.size} words")

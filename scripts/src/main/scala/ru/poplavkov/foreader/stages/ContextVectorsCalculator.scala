@@ -87,7 +87,7 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
   private def combineVectorFiles(dir: File): F[WordToVectorsMap] = Sync[F].delay {
     dir.listFiles
       .map(readJsonFile[WordToVectorsMap])
-      .reduce { case (map1, map2) =>
+      .reduce[WordToVectorsMap] { case (map1, map2) =>
         CollectionUtil.mergeMaps(map1, map2) { (v1, v2) =>
           if (v1.size + v2.size > MaxArraySize) {
             println(s"WARN: Array size exceeds $MaxArraySize. Take only a $MaxArraySize elements...")

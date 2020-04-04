@@ -3,13 +3,15 @@ package ru.poplavkov.foreader
 import java.io.File
 
 import cats.effect.Sync
+import cats.instances.list._
+import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.applicative._
 import cats.syntax.traverse._
-import cats.instances.list._
+import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
-import ru.poplavkov.foreader.dictionary.Dictionary
+import ru.poplavkov.foreader.TestDataCreator._
+import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.MathVector
 
@@ -19,37 +21,42 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                    dictionary: Dictionary[F],
                                    meaningToVectorMap: Map[DictionaryMeaningId, MathVector]) {
 
-  def create(inputFile: File) = {
+  def create(inputFile: File, outFile: File, n: Int): F[Unit] = {
     val text = FileUtil.readFile(inputFile.toPath)
     for {
       tokens <- tokenExtractor.extract(text)
-      sentences = tokens.
-
+      cases <- createTestCases(tokens, n)
+      _ <- writeToFileJson(outFile, cases)
     } yield ()
-
   }
 
-
-  private def d(tokens: Seq[Token]) = {
-    val sentence = tokens.takeWhile {
-      case Token.Punctuation(_, mark) => !mark.isEndOfSentence
-      case _ => true
+  private def createTestCases(tokens: Seq[Token], n: Int, cases: Seq[TestCase] = Seq.empty): F[Seq[TestCase]] = {
+    if (cases.size >= n) {
+      cases.take(n).pure
+    } else if (tokens.isEmpty) {
+      cases.pure
+    } else {
+      val sentence = tokens.takeWhile {
+        case Token.Punctuation(_, mark) => !mark.isEndOfSentence
+        case _ => true
+      }
+      val rest = tokens.drop(sentence.length + 1)
+      testCasesFromSentence(sentence).flatMap { testCases =>
+        createTestCases(rest, n, cases ++ testCases)
+      }
     }
-    val rest = tokens.drop(sentence.length + 1)
   }
 
-  private def processSentence(sentence: Seq[Token]) =
+  private def testCasesFromSentence(sentence: Seq[Token]): F[Seq[TestCase]] =
     for {
       suitable <- extractSuitableWords(sentence)
-      _ <- if (suitable.isEmpty) {
-        ().pure[F]
-      } else {
-        va
+    } yield {
+      suitable.map { case (word, meanings) =>
+        TestCase(sentence, word, meanings)
       }
+    }
 
-    } yield ()
-
-  private def extractSuitableWords(sentence: Seq[Token]): F[Seq[Token.Word]] =
+  private def extractSuitableWords(sentence: Seq[Token]): F[Seq[(Token.Word, Seq[DictionaryEntry.Meaning])]] =
     sentence.toList.traverse {
       case token@Token.Word(_, _, lemma, partOfSpeech) =>
         for {
@@ -63,22 +70,17 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
           }
         } yield {
           if (meaningsInMap.nonEmpty) {
-            Some(token)
+            Some((token, meanings))
           } else {
             None
           }
         }
     }.map(_.flatten)
 
-  private def processSuitableWord(word: Token.Word, sentence: Seq[Token]) = {
-    val prefixSize = tokensToString(sentence.takeWhile(_ != word)).length + 2
-    val prefix = " " * prefixSize
-    val toPrint = s"${tokensToString(sentence)}\n$prefix^"
-  }
+}
 
-  private def tokensToString(tokens: Seq[Token]): String =
-    tokens.map {
-      case Token.Word(_, original, _, _) => original
-      case Token.Punctuation(_, mark) => mark.value
-    }.mkString(" ")
+object TestDataCreator {
+
+  case class TestCase(sentence: Seq[Token], word: Token.Word, meanings: Seq[DictionaryEntry.Meaning])
+
 }

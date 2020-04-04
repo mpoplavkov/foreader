@@ -13,6 +13,7 @@ import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.MathVector
 
 import scala.language.higherKinds
+import scala.util.Random
 
 class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                    dictionary: Dictionary[F],
@@ -22,6 +23,7 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
     for {
       tokens <- tokenExtractor.extract(text)
       cases <- createTestCases(tokens, n)
+      _ = require(cases.map(_.id).toSet.size == cases.size)
     } yield cases
 
   private def createTestCases(tokens: Seq[Token], n: Int, cases: Seq[TestCase] = Seq.empty): F[Seq[TestCase]] = {
@@ -46,7 +48,7 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       suitable <- extractSuitableWords(sentence)
     } yield {
       suitable.map { case (word, meanings) =>
-        TestCase(sentence, word, meanings)
+        TestCase(Random.nextString(10), sentence, word, meanings)
       }
     }
 
@@ -63,7 +65,7 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
             ().pure[F]
           }
         } yield {
-          if (meaningsInMap.nonEmpty) {
+          if (meanings.size > 1 && meaningsInMap.nonEmpty) {
             Some((token, meanings))
           } else {
             None

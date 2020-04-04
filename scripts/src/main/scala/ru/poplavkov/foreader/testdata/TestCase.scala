@@ -6,6 +6,7 @@ import ru.poplavkov.foreader.text.Token
 /**
   * @author mpoplavkov
   */
-case class TestCase(sentence: Seq[Token],
+case class TestCase(id: String,
+                    sentence: Seq[Token],
                     word: Token.Word,
                     meanings: Seq[DictionaryEntry.Meaning])

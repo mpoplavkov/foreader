@@ -43,21 +43,22 @@ object HumanTester extends IOApp {
 
   private def handleTestCase(testCase: TestCase): Either[Unit, Option[DictionaryEntry.Meaning]] = {
     val TestCase(_, sentence, word, meanings) = testCase
-    var wordInd = 0
+    val headPosition = sentence.head.position
+    sentence.map {
+      case word: Token.Word => word.copy(position = word.position - headPosition)
+      case punct: Token.Punctuation => punct.copy(position = punct.position - headPosition)
+    }
     val sentenceStr = sentence.foldLeft("") { case (str, token) =>
-      val newStr = token match {
-        case Token.Word(_, original, _, _) if str.isEmpty => original
-        case Token.Word(_, original, _, _) => s"$str $original"
-        case Token.Punctuation(_, mark) => s"$str${mark.value}"
+      val tokenStr = token match {
+        case Token.Word(_, original, _, _) => original
+        case Token.Punctuation(_, mark) => mark.value
       }
-      if (token == word) {
-        wordInd = str.length + 1
-      }
-      newStr
+      val spaces = " " * (token.position - str.length)
+      s"$str$spaces$tokenStr"
     }
 
     println(sentenceStr)
-    println(" " * wordInd + "^" * word.original.length)
+    println(" " * word.position + "^" * word.original.length)
     meanings.zipWithIndex.foreach { case (meaning, index) =>
       println(s"$index) ${meaning.definition}")
     }

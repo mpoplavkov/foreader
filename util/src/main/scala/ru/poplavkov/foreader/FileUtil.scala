@@ -1,6 +1,6 @@
 package ru.poplavkov.foreader
 
-import java.io.{File, FileOutputStream}
+import java.io.{File, FileWriter}
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path}
 
@@ -19,8 +19,8 @@ object FileUtil {
   }
 
   def writeToFile[F[_] : Sync](file: File, toWrite: String): F[Unit] =
-    Resource.fromAutoCloseable(Sync[F].delay(new FileOutputStream(file))).use { os =>
-      Sync[F].delay(os.write(toWrite.getBytes))
+    Resource.fromAutoCloseable(Sync[F].delay(new FileWriter(file))).use { writer =>
+      Sync[F].delay(writer.write(toWrite))
     }
 
   def childFile(dir: File, childName: String): File =

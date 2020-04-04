@@ -55,7 +55,25 @@ object Tester extends IOApp {
       }
 
       _ <- writeToFileJson[IO, Map[String, DictionaryMeaningId]](outFile, answers)
+
+      _ <- if (humanResultFile.exists && dictionaryResultFile.exists) {
+        val humanResult = readJsonFile[Map[String, DictionaryMeaningId]](humanResultFile)
+        val dictResult = readJsonFile[Map[String, DictionaryMeaningId]](dictionaryResultFile)
+        val (all, correct) = compareResults(humanResult, dictResult)
+        info[IO](s"Correctly identified $correct/$all meanings")
+      } else {
+        ().pure[IO]
+      }
     } yield ExitCode.Success
+  }
+
+  private def compareResults(humanResult: Map[String, DictionaryMeaningId],
+                             dictionaryResult: Map[String, DictionaryMeaningId]) = {
+    val commonKeys = humanResult.keySet.intersect(dictionaryResult.keySet)
+    val commonAnswers = commonKeys.filter { key =>
+      humanResult(key) == dictionaryResult(key)
+    }
+    (commonKeys.size, commonAnswers.size)
   }
 
   private def handleTestCasesDictionary(testCases: Seq[TestCase],

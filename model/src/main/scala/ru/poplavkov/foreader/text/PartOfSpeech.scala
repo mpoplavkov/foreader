@@ -1,9 +1,27 @@
 package ru.poplavkov.foreader.text
 
+import io.circe.{Decoder, Encoder}
+import ru.poplavkov.foreader.text.PartOfSpeech._
+
 /**
   * @author mpoplavkov
   */
-sealed trait PartOfSpeech
+sealed trait PartOfSpeech {
+
+  def value: String = this match {
+    case Noun => "noun"
+    case Pronoun => "pronoun"
+    case Verb => "verb"
+    case Adjective => "adjective"
+    case Adverb => "adverb"
+    case Preposition => "preposition"
+    case Conjunction => "conjunction"
+    case Interjection => "interjection"
+    case Numeral => "numeral"
+    case Other(tag) => s"other_$tag"
+  }
+
+}
 
 object PartOfSpeech {
 
@@ -30,19 +48,6 @@ object PartOfSpeech {
 
   case class Other(tag: String) extends PartOfSpeech
 
-  def stringify(pos: PartOfSpeech): String = pos match {
-    case Noun => "noun"
-    case Pronoun => "pronoun"
-    case Verb => "verb"
-    case Adjective => "adjective"
-    case Adverb => "adverb"
-    case Preposition => "preposition"
-    case Conjunction => "conjunction"
-    case Interjection => "interjection"
-    case Numeral => "numeral"
-    case Other(tag) => s"other_$tag"
-  }
-
   def fromString(str: String): Option[PartOfSpeech] = {
     val otherRegexp = "other_(.*)".r
     str match {
@@ -59,4 +64,10 @@ object PartOfSpeech {
       case _ => None
     }
   }
+
+  implicit val encoder: Encoder[PartOfSpeech] =
+    Encoder.encodeString.contramap(_.value)
+
+  implicit val decoder: Decoder[PartOfSpeech] =
+    Decoder.decodeString.emap(s => fromString(s).toRight("PartOfSpeech"))
 }

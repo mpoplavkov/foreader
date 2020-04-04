@@ -16,7 +16,7 @@ object WordWithPos {
 
   implicit val keyEncoder: KeyEncoder[WordWithPos] = (value: WordWithPos) => {
     val WordWithPos(word, pos) = value
-    s"$word(${PartOfSpeech.stringify(pos)})"
+    s"$word(${pos.value})"
   }
 
   implicit val keyDecoder: KeyDecoder[WordWithPos] = {

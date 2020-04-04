@@ -5,11 +5,12 @@ import java.io.File
 import cats.effect.Sync
 import io.circe.parser.decode
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder, KeyEncoder}
+import io.circe.{Decoder, Encoder, KeyDecoder, KeyEncoder}
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
 import ru.poplavkov.foreader.text.impl.ContextExtractorImpl
 import ru.poplavkov.foreader.text.{TextContext, Token}
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
+import com.softwaremill.tagging._
 
 import scala.language.{higherKinds, implicitConversions}
 
@@ -43,4 +44,5 @@ package object foreader {
   }
 
   implicit val meaningIdKeyEncoder: KeyEncoder[DictionaryMeaningId] = identity
+  implicit val meaningIdKeyDecoder: KeyDecoder[DictionaryMeaningId] = s => Some(s.taggedWith)
 }

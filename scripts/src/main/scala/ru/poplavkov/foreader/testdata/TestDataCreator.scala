@@ -26,9 +26,9 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
 
   private def createTestCases(tokens: Seq[Token], n: Int, cases: Seq[TestCase] = Seq.empty): F[Seq[TestCase]] = {
     if (cases.size >= n) {
-      cases.take(n).pure
+      cases.take(n).pure[F]
     } else if (tokens.isEmpty) {
-      cases.pure
+      cases.pure[F]
     } else {
       val sentence = tokens.takeWhile {
         case Token.Punctuation(_, mark) => !mark.isEndOfSentence
@@ -69,6 +69,8 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
             None
           }
         }
+      case _ =>
+        Option.empty[(Token.Word, Seq[DictionaryEntry.Meaning])].pure[F]
     }.map(_.flatten)
 
 }

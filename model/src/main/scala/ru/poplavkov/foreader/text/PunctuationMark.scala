@@ -14,17 +14,10 @@ sealed trait PunctuationMark {
   }
 
   def value: String = this match {
-    case PunctuationMark.Dot => "."
-    case PunctuationMark.Exclamation => "!"
-    case PunctuationMark.Question => "?"
-    case PunctuationMark.Comma => ","
-    case PunctuationMark.Colon => ":"
-    case PunctuationMark.Semicolon => ";"
-    case PunctuationMark.Dots => "..."
-    case PunctuationMark.Hyphen => "-"
-    case Parenthesis(token) => s"parenthesis_$token"
-    case Quote(token) => s"quote_$token"
-    case Other(token) => s"other_$token"
+    case Dot | Exclamation | Question | Comma | Colon | Semicolon | Dots | Hyphen => stringify(this)
+    case Parenthesis(token) => token
+    case Quote(token) => token
+    case Other(token) => token
   }
 
 }
@@ -53,6 +46,20 @@ object PunctuationMark {
 
   case class Other(token: String) extends PunctuationMark
 
+  def stringify(mark: PunctuationMark): String = mark match {
+    case Dot => "."
+    case Exclamation => "!"
+    case Question => "?"
+    case Comma => ","
+    case Colon => ":"
+    case Semicolon => ";"
+    case Dots => "..."
+    case Hyphen => "-"
+    case Parenthesis(token) => s"parenthesis_$token"
+    case Quote(token) => s"quote_$token"
+    case Other(token) => s"other_$token"
+  }
+
   def fromString(str: String): Option[PunctuationMark] = {
     val parenthesisRegexp = "parenthesis_(.*)".r
     val quoteRegexp = "quote_(.*)".r
@@ -74,7 +81,7 @@ object PunctuationMark {
   }
 
   implicit val encoder: Encoder[PunctuationMark] =
-    Encoder.encodeString.contramap(_.value)
+    Encoder.encodeString.contramap(stringify)
 
   implicit val decoder: Decoder[PunctuationMark] =
     Decoder.decodeString.emap(s => fromString(s).toRight("PunctuationMark"))

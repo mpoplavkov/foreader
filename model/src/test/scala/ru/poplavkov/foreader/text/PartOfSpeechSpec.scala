@@ -12,7 +12,7 @@ class PartOfSpeechSpec extends SpecBase {
 
   "PartOfSpeech" should {
     s"convert $pos toString and fromString" in {
-      PartOfSpeech.fromString(pos.value) shouldBe Some(pos)
+      PartOfSpeech.fromString(PartOfSpeech.stringify(pos)) shouldBe Some(pos)
     }
   }
 }

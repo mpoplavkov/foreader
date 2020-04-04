@@ -12,7 +12,7 @@ class PunctuationMarkSpec extends SpecBase {
 
   "PunctuationMark" should {
     s"convert $mark toString and fromString" in {
-      PunctuationMark.fromString(mark.value) shouldBe Some(mark)
+      PunctuationMark.fromString(PunctuationMark.stringify(mark)) shouldBe Some(mark)
     }
   }
 

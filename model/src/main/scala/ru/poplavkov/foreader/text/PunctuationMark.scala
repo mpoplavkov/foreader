@@ -12,6 +12,20 @@ sealed trait PunctuationMark {
     case _ => false
   }
 
+  def value: String = this match {
+    case PunctuationMark.Dot => "."
+    case PunctuationMark.Exclamation => "!"
+    case PunctuationMark.Question => "?"
+    case PunctuationMark.Comma => ","
+    case PunctuationMark.Colon => ":"
+    case PunctuationMark.Semicolon => ";"
+    case PunctuationMark.Dots => "..."
+    case PunctuationMark.Hyphen => "-"
+    case Parenthesis(token) => token
+    case Quote(token) => token
+    case Other(token) => token
+  }
+
 }
 
 object PunctuationMark {

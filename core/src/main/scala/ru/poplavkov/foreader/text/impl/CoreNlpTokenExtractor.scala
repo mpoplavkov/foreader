@@ -21,11 +21,11 @@ import scala.language.higherKinds
   */
 class CoreNlpTokenExtractor[F[_] : Sync](language: Language) extends TokenExtractor[F] {
 
-  private val Pipeline = createCoreNlpPipeline(language)
+  private val pipeline = createCoreNlpPipeline(language)
 
   override def extract(text: String): F[Seq[Token]] = Sync[F].delay {
     val document = new CoreDocument(text)
-    Pipeline.annotate(document)
+    pipeline.annotate(document)
 
     for {
       sentence <- document.sentences().asScala

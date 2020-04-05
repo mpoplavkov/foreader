@@ -28,9 +28,9 @@ object Tester extends IOApp {
 
   private val vectorsFile = FileUtil.childFile(LocalDir, "vectors.txt")
   private val meaningsToVectorsFile = FileUtil.childFile(LocalDir, "clustered_meanings.json")
-  private val testCasesFile = FileUtil.childFile(LocalDir, "test_data.json")
-  private val humanResultFile = FileUtil.childFile(LocalDir, "result_human.json")
-  private val dictionaryResultFile = FileUtil.childFile(LocalDir, "result_dictionary.json")
+  private val testCasesFile = FileUtil.childFile(TestDataDir, "test_data.json")
+  private val humanResultFile = FileUtil.childFile(TestDataDir, "result_human.json")
+  private val dictionaryResultFile = FileUtil.childFile(TestDataDir, "result_dictionary.json")
 
   private val mweSet = new EmptyMweSetImpl[IO]
   private val lexicalItemExtractor = new LexicalItemExtractorImpl[IO](mweSet, commonContextExtractor)
@@ -78,14 +78,21 @@ object Tester extends IOApp {
       val testCase = cases.find(_.id == testId).get
       val meaning = testCase.meanings.find(_.id == humanResult(testId)).get
       val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
-      s"Correct:\n$quiz\n$meaning\n"
+      s"""Correct:
+         |$quiz
+         |${meaning.definition}
+         |""".stripMargin
     }.mkString("\n")
     val incorrect = differentAnswers.map { testId =>
       val testCase = cases.find(_.id == testId).get
       val humanMeaning = testCase.meanings.find(_.id == humanResult(testId)).get
       val dictMeaning = testCase.meanings.find(_.id == dictionaryResult(testId)).get
       val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
-      s"Incorrect:\n$quiz\nhuman     : $humanMeaning\ndictionary: $dictMeaning\n"
+      s"""Incorrect:
+         |$quiz
+         |human     : ${humanMeaning.definition}
+         |dictionary: ${dictMeaning.definition}
+         |""".stripMargin
     }.mkString("\n")
 
     for {
@@ -160,11 +167,11 @@ object Tester extends IOApp {
 
   private def sentenceToQuiz(sentence: Seq[Token], targetWord: Token.Word): String = {
     val headPosition = sentence.head.position
-    sentence.map {
+    val shifted = sentence.map {
       case word: Token.Word => word.copy(position = word.position - headPosition)
       case punct: Token.Punctuation => punct.copy(position = punct.position - headPosition)
     }
-    val sentenceStr = sentence.foldLeft("") { case (str, token) =>
+    val sentenceStr = shifted.foldLeft("") { case (str, token) =>
       val tokenStr = token match {
         case Token.Word(_, original, _, _) => original
         case Token.Punctuation(_, mark) => mark.value
@@ -172,7 +179,7 @@ object Tester extends IOApp {
       val spaces = " " * (token.position - str.length)
       s"$str$spaces$tokenStr"
     }
-    val wordStr = " " * targetWord.position + "^" * targetWord.original.length
+    val wordStr = " " * {targetWord.position - headPosition} + "^" * targetWord.original.length
 
     s"$sentenceStr\n$wordStr"
   }

@@ -14,6 +14,8 @@ package object foreader {
 
   val LocalDir = new File(".local")
   LocalDir.mkdir()
+  val TestDataDir: File = FileUtil.childFile(LocalDir, "testdata")
+  TestDataDir.mkdir()
 
   type WordToVectorsMap = Map[WordWithPos, Seq[MathVector]]
 

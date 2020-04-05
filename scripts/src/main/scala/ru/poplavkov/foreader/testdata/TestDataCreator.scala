@@ -60,7 +60,7 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
           meanings = entry.toSeq.flatMap(_.meanings)
           meaningsInMap = meanings.map(_.id).filter(meaningToVectorMap.contains)
           _ <- if (meaningsInMap.size < meanings.size) {
-            info(s"Not all meanings in map: ${meaningsInMap.size}/${meanings.size}")
+            info(s"Not all meanings in map (${meaningsInMap.size}/${meanings.size}) for `$lemma`, $partOfSpeech")
           } else {
             ().pure[F]
           }

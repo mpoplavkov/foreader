@@ -10,7 +10,6 @@ import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
-import ru.poplavkov.foreader.word2vec.VectorsExtractor
 
 /**
   * @author mpoplavkov
@@ -19,9 +18,9 @@ object CreateTestData extends IOApp {
 
   private val N = 10
 
-  private val inputFile = FileUtil.childFile(LocalDir, "text.txt")
+  private val inputFile = FileUtil.childFile(TestDataDir, "text.txt")
   private val meaningsToVectorsFile = new File(s"$LocalDir/clustered_meanings.json")
-  private val outFile = FileUtil.childFile(LocalDir, "test_data.json")
+  private val outFile = FileUtil.childFile(TestDataDir, "test_data.json")
 
   private val inputText = FileUtil.readFile(inputFile.toPath)
   private val tokenExtractor = new CoreNlpTokenExtractor[IO](Language.English)

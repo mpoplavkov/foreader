@@ -17,7 +17,8 @@ import scala.util.Random
 
 class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                    dictionary: Dictionary[F],
-                                   meaningToVectorMap: Map[DictionaryMeaningId, MathVector]) {
+                                   meaningToVectorMap: Map[DictionaryMeaningId, MathVector],
+                                   dictEntryFilter: DictionaryEntry => Boolean) {
 
   def create(text: String, n: Int): F[Seq[TestCase]] =
     for {
@@ -57,7 +58,7 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       case token@Token.Word(_, _, lemma, partOfSpeech) =>
         for {
           entry <- dictionary.getDefinition(lemma, partOfSpeech).value
-          meanings = entry.toSeq.flatMap(_.meanings)
+          meanings = entry.filter(dictEntryFilter).toSeq.flatMap(_.meanings)
           meaningsInMap = meanings.map(_.id).filter(meaningToVectorMap.contains)
           _ <- if (meaningsInMap.size < meanings.size) {
             info(s"Not all meanings in map (${meaningsInMap.size}/${meanings.size}) for `$lemma`, $partOfSpeech")

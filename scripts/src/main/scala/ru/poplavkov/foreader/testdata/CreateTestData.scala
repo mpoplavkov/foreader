@@ -7,6 +7,7 @@ import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
 import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader._
+import ru.poplavkov.foreader.dictionary.DictionaryEntry
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
@@ -25,10 +26,12 @@ object CreateTestData extends IOApp {
   private val inputText = FileUtil.readFile(inputFile.toPath)
   private val tokenExtractor = new CoreNlpTokenExtractor[IO](Language.English)
 
+  private val dictEntryFilter: DictionaryEntry => Boolean = _.meanings.size <= 3
+
   override def run(args: List[String]): IO[ExitCode] = for {
     meaningToVectorMap <- readJsonFile[IO, Map[DictionaryMeaningId, MathVector]](meaningsToVectorsFile)
     dictionary = new WordNetDictionaryImpl[IO](VectorsMap.Empty, Map.empty)
-    testDataCreator = new TestDataCreator[IO](tokenExtractor, dictionary, meaningToVectorMap)
+    testDataCreator = new TestDataCreator[IO](tokenExtractor, dictionary, meaningToVectorMap, dictEntryFilter)
     testCases <- testDataCreator.create(inputText, N)
     _ <- writeToFileJson[IO, Seq[TestCase]](outFile, testCases)
   } yield ExitCode.Success

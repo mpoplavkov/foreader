@@ -18,17 +18,17 @@ import ru.poplavkov.foreader.word2vec.VectorsExtractor
 /**
   * @author mpoplavkov
   */
-object FullPipeline extends IOApp {
+object CreateMeaningMappingsPipeline extends IOApp {
 
   private val corpusName = "corpus"
   private val id = Instant.now.toEpochMilli
-  private val workDir: File = new File(s"$LocalDir/context_vectors_$id")
+  private val workDir: File = FileUtil.childFile(LocalDir, s"context_vectors_$id")
   private val separateFilesDir: File = FileUtil.childFile(workDir, "separate")
   workDir.mkdir()
   separateFilesDir.mkdir()
-  private val vectorsFile = new File(s"$LocalDir/vectors.txt")
-  private val corpusDir = new File(s"$LocalDir/$corpusName")
-  private val outFile = FileUtil.childFile(workDir, "clusteredDefinitions.txt")
+  private val vectorsFile = FileUtil.childFile(LocalDir, "vectors.txt")
+  private val corpusDir = FileUtil.childFile(LocalDir, corpusName)
+  private val outFile = FileUtil.childFile(workDir, "clusteredDefinitions.json")
 
   private val contextLen = 3
   private val tokenExtractor = new CoreNlpTokenExtractor[IO](Language.English)
@@ -37,26 +37,30 @@ object FullPipeline extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = for {
     vectorsMap <- VectorsExtractor.extractVectors[IO](vectorsFile.toPath)
+    _ <- info[IO]("Vectors extracted")
+
     calculator = new ContextVectorsCalculator[IO](tokenExtractor, vectorsMap, dictionary, contextLen)
     mapper = new ClusterToDefinitionMapper[IO](dictionary, tokenExtractor, vectorsMap, contextLen)
-    _ <- info[IO]("Vectors extracted")
+
     vectorsFiles <- calculator.calculate(corpusDir, separateFilesDir)
     _ <- info[IO]("Context vectors calculated")
 
     centroidsMaps <- vectorsFiles.toList.traverse { file =>
       for {
         _ <- info[IO](s"Extracting vectors map from ${file.getName}")
-        wordToVectorsMap = readJsonFile[WordToVectorsMap](file)
+        wordToVectorsMap <- readJsonFile[IO, WordToVectorsMap](file)
         _ <- info[IO](s"Creating clusters for ${file.getName}")
         clusters <-  clustersCreator.createClusters(wordToVectorsMap)
       } yield clusters
     }
+
+    _ <- info[IO]("Merging centroids maps")
     wordToCentroidsMap = centroidsMaps.reduce(CollectionUtil.mergeMapsWithUniqueKeys[WordWithPos, Seq[MathVector]])
     _ <- info[IO](s"Created clusters for ${wordToCentroidsMap.size} words")
 
-    dictionaryToClusterMap <- mapper.mapClusters(wordToCentroidsMap)
-    _ <- info[IO](s"Mapping from meanings to clusters created")
-    _ <- writeToFileJson[IO, Map[DictionaryMeaningId, MathVector]](outFile, dictionaryToClusterMap)
+    meaningsToClustersMap <- mapper.mapClusters(wordToCentroidsMap)
+    _ <- info[IO](s"Mapping from meanings to clusters created. Flushing to ${outFile.getAbsolutePath}")
+    _ <- writeToFileJson[IO, Map[DictionaryMeaningId, MathVector]](outFile, meaningsToClustersMap)
 
   } yield ExitCode.Success
 

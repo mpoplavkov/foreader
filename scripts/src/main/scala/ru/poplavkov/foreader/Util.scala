@@ -19,7 +19,7 @@ object Util {
 
   def info[F[_] : Sync](info: String): F[Unit] = Sync[F].delay(println(info))
 
-  def readJsonFile[T: Decoder](file: File): T = {
+  def readJsonFile[F[_] : Sync, T: Decoder](file: File): F[T] = Sync[F].delay {
     val content = FileUtil.readFile(file.toPath)
     decode[T](content).right.get
   }
@@ -31,7 +31,7 @@ object Util {
                            index: Int,
                            vectorsMap: VectorsMap,
                            contextLen: Int): MathVector = {
-    val contextExtractor = new ContextExtractorImpl(contextLen = 3)
+    val contextExtractor = new ContextExtractorImpl(contextLen)
     val surroundingWords = contextExtractor.extractContext(tokens, index) match {
       case TextContext.Empty => Seq.empty
       case TextContext.SurroundingWords(before, after) => before ++ after

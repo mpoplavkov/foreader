@@ -45,7 +45,7 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
         for {
           _ <- info(s"combining separate files from ${dir.getAbsolutePath}")
           vectorsMap <- combineVectorFiles(dir)
-          out = FileUtil.childFile(dirForSeparateFiles, s"${dir.getName}_context_vectors.txt")
+          out = FileUtil.childFile(dirForSeparateFiles, s"${dir.getName}_context_vectors.json")
           _ <- writeToFileJson(out, vectorsMap)
         } yield out
       }
@@ -57,15 +57,18 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
     val text = FileUtil.readFile(file.toPath)
     for {
       tokens <- tokenExtractor.extract(text)
-      contextVectors <- findContextVectors(tokens, vectorsMap)
+      contextVectors <- findContextVectors(tokens)
+
+      // filter by existing in the dictionary
       filtered <- contextVectors.toList.traverse { case (wordPos, vectors) =>
         dictionary.getDefinition(wordPos.word, wordPos.pos).map(_ => (wordPos, vectors)).value
-      }
-      _ <- filtered.flatten.groupBy(_._1.word.head.toLower).toList.traverse { case (startLetter, wordToVectors) =>
+      }.map(_.flatten)
+
+      _ <- filtered.groupBy(_._1.word.head.toLower).toList.traverse { case (startLetter, wordToVectors) =>
         if (AllowedStartsOfWord(startLetter)) {
           val outDir = FileUtil.childFile(separateFilesDir, startLetter.toString)
           outDir.mkdir()
-          val outFile = FileUtil.childFile(outDir, file.getName)
+          val outFile = FileUtil.childFile(outDir, s"${file.getName}.json")
           writeToFileJson(outFile, wordToVectors.toMap)
         } else {
           ().pure[F]
@@ -75,8 +78,7 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
 
   }
 
-  private def findContextVectors(tokens: Seq[Token],
-                                 vectorsMap: VectorsMap): F[WordToVectorsMap] = Sync[F].delay {
+  private def findContextVectors(tokens: Seq[Token]): F[WordToVectorsMap] = Sync[F].delay {
     tokens.zipWithIndex
       .collect { case (Token.Word(_, _, lemma, pos), ind) =>
         WordWithPos(lemma, pos) -> contextVectorByIndex(tokens, ind, vectorsMap, contextLen)
@@ -84,11 +86,10 @@ class ContextVectorsCalculator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       .groupBy(_._1).mapValues(_.map(_._2))
   }
 
-  private def combineVectorFiles(dir: File): F[WordToVectorsMap] = Sync[F].delay {
-    dir.listFiles
-      .map(readJsonFile[WordToVectorsMap])
-      .reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _))
-  }
+  private def combineVectorFiles(dir: File): F[WordToVectorsMap] =
+    dir.listFiles.toList
+      .traverse(readJsonFile[F, WordToVectorsMap])
+      .map(_.reduce(CollectionUtil.mergeMaps(_, _)(_ ++ _)))
 
 }
 

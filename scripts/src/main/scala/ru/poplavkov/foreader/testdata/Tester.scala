@@ -1,13 +1,13 @@
 package ru.poplavkov.foreader.testdata
 
-import java.io.File
-
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.instances.list._
 import cats.syntax.applicative._
 import cats.syntax.traverse._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
+import ru.poplavkov.foreader.Util._
+import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.empty.EmptyMweSetImpl
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
@@ -15,7 +15,6 @@ import ru.poplavkov.foreader.text.impl.{ContextExtractorImpl, LexicalItemExtract
 import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, Token}
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
 import ru.poplavkov.foreader.word2vec.VectorsExtractor
-import ru.poplavkov.foreader.{LocalDir, _}
 
 import scala.io.StdIn
 import scala.util.Try
@@ -27,23 +26,24 @@ object Tester extends IOApp {
 
   private val isHuman = true
 
-  private val vectorsFile = new File(s"$LocalDir/vectors.txt")
-  private val meaningsToVectorsFile = new File(s"$LocalDir/clustered_meanings.json")
-  private val testCasesFile = new File(s"$LocalDir/test_data.json")
-  private val testCases = readJsonFile[Seq[TestCase]](testCasesFile)
-  private val humanResultFile = new File(s"$LocalDir/result_human.json")
-  private val dictionaryResultFile = new File(s"$LocalDir/result_dictionary.json")
+  private val vectorsFile = FileUtil.childFile(LocalDir, "vectors.txt")
+  private val meaningsToVectorsFile = FileUtil.childFile(LocalDir, "clustered_meanings.json")
+  private val testCasesFile = FileUtil.childFile(LocalDir, "test_data.json")
+  private val humanResultFile = FileUtil.childFile(LocalDir, "result_human.json")
+  private val dictionaryResultFile = FileUtil.childFile(LocalDir, "result_dictionary.json")
 
   private val contextLen = 3
   private val contextExtractor = new ContextExtractorImpl(contextLen)
   private val mweSet = new EmptyMweSetImpl[IO]
-  private val meaningToVectorMap = readJsonFile[Map[DictionaryMeaningId, MathVector]](meaningsToVectorsFile)
   private val lexicalItemExtractor = new LexicalItemExtractorImpl[IO](mweSet, contextExtractor)
 
   override def run(args: List[String]): IO[ExitCode] = {
     val outFile = if (isHuman) humanResultFile else dictionaryResultFile
 
     for {
+      testCases <- readJsonFile[IO, Seq[TestCase]](testCasesFile)
+      meaningToVectorMap <- readJsonFile[IO, Map[DictionaryMeaningId, MathVector]](meaningsToVectorsFile)
+
       vectorsMap <- if (isHuman) VectorsMap.Empty.pure[IO] else VectorsExtractor.extractVectors[IO](vectorsFile.toPath)
 
       dictionary = new WordNetDictionaryImpl[IO](vectorsMap, meaningToVectorMap)
@@ -57,10 +57,12 @@ object Tester extends IOApp {
       _ <- writeToFileJson[IO, Map[String, DictionaryMeaningId]](outFile, answers)
 
       _ <- if (humanResultFile.exists && dictionaryResultFile.exists) {
-        val humanResult = readJsonFile[Map[String, DictionaryMeaningId]](humanResultFile)
-        val dictResult = readJsonFile[Map[String, DictionaryMeaningId]](dictionaryResultFile)
-        val (all, correct) = compareResults(humanResult, dictResult)
-        info[IO](s"Correctly identified $correct/$all meanings")
+        for {
+          humanResult <- readJsonFile[IO, Map[String, DictionaryMeaningId]](humanResultFile)
+          dictResult <- readJsonFile[IO, Map[String, DictionaryMeaningId]](dictionaryResultFile)
+          (all, correct) = compareResults(humanResult, dictResult)
+          _ <- info[IO] (s"Correctly identified $correct/$all meanings ")
+        } yield ()
       } else {
         ().pure[IO]
       }
@@ -68,7 +70,7 @@ object Tester extends IOApp {
   }
 
   private def compareResults(humanResult: Map[String, DictionaryMeaningId],
-                             dictionaryResult: Map[String, DictionaryMeaningId]) = {
+                             dictionaryResult: Map[String, DictionaryMeaningId]): (Int, Int) = {
     val commonKeys = humanResult.keySet.intersect(dictionaryResult.keySet)
     val commonAnswers = commonKeys.filter { key =>
       humanResult(key) == dictionaryResult(key)

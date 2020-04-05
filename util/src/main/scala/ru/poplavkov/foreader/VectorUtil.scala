@@ -14,7 +14,7 @@ object VectorUtil {
     (vectorA - vectorB).length
 
   def avgVector(dimension: Int, vectors: Seq[MathVector]): MathVector =
-    vectors.foldLeft(MathVector.zero(dimension))(_ + _) / vectors.size
+    vectors.foldLeft(MathVector.zero(dimension))(_ + _) / Math.max(vectors.size, 1)
 
   def equalsWithAllowedDistanceBetween(vectorA: MathVector,
                                        vectorB: MathVector,

@@ -7,8 +7,8 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
+import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
-import ru.poplavkov.foreader.info
 import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.MathVector
 

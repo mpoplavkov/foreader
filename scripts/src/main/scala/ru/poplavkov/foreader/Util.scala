@@ -31,8 +31,7 @@ object Util {
                            index: Int,
                            vectorsMap: VectorsMap,
                            contextLen: Int): MathVector = {
-    val contextExtractor = new ContextExtractorImpl(contextLen)
-    val surroundingWords = contextExtractor.extractContext(tokens, index) match {
+    val surroundingWords = commonContextExtractor.extractContext(tokens, index) match {
       case TextContext.Empty => Seq.empty
       case TextContext.SurroundingWords(before, after) => before ++ after
     }

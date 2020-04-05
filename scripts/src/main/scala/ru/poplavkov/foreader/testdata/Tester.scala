@@ -11,7 +11,7 @@ import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.empty.EmptyMweSetImpl
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
-import ru.poplavkov.foreader.text.impl.{ContextExtractorImpl, LexicalItemExtractorImpl}
+import ru.poplavkov.foreader.text.impl.LexicalItemExtractorImpl
 import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, Token}
 import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
 import ru.poplavkov.foreader.word2vec.VectorsExtractor
@@ -32,10 +32,8 @@ object Tester extends IOApp {
   private val humanResultFile = FileUtil.childFile(LocalDir, "result_human.json")
   private val dictionaryResultFile = FileUtil.childFile(LocalDir, "result_dictionary.json")
 
-  private val contextLen = 3
-  private val contextExtractor = new ContextExtractorImpl(contextLen)
   private val mweSet = new EmptyMweSetImpl[IO]
-  private val lexicalItemExtractor = new LexicalItemExtractorImpl[IO](mweSet, contextExtractor)
+  private val lexicalItemExtractor = new LexicalItemExtractorImpl[IO](mweSet, commonContextExtractor)
 
   override def run(args: List[String]): IO[ExitCode] = {
     val outFile = if (isHuman) humanResultFile else dictionaryResultFile
@@ -61,7 +59,7 @@ object Tester extends IOApp {
           humanResult <- readJsonFile[IO, Map[String, DictionaryMeaningId]](humanResultFile)
           dictResult <- readJsonFile[IO, Map[String, DictionaryMeaningId]](dictionaryResultFile)
           (all, correct) = compareResults(humanResult, dictResult)
-          _ <- info[IO] (s"Correctly identified $correct/$all meanings ")
+          _ <- info[IO](s"Correctly identified $correct/$all meanings ")
         } yield ()
       } else {
         ().pure[IO]

@@ -9,7 +9,7 @@ import ru.poplavkov.foreader.Util._
 import ru.poplavkov.foreader._
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl
 import ru.poplavkov.foreader.text.impl.CoreNlpTokenExtractor
-import ru.poplavkov.foreader.vector.MathVector
+import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
 import ru.poplavkov.foreader.word2vec.VectorsExtractor
 
 /**
@@ -20,7 +20,6 @@ object CreateTestData extends IOApp {
   private val N = 10
 
   private val inputFile = FileUtil.childFile(LocalDir, "text.txt")
-  private val vectorsFile = FileUtil.childFile(LocalDir, "vectors.txt")
   private val meaningsToVectorsFile = new File(s"$LocalDir/clustered_meanings.json")
   private val outFile = FileUtil.childFile(LocalDir, "test_data.json")
 
@@ -29,8 +28,7 @@ object CreateTestData extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] = for {
     meaningToVectorMap <- readJsonFile[IO, Map[DictionaryMeaningId, MathVector]](meaningsToVectorsFile)
-    vectorsMap <- VectorsExtractor.extractVectors[IO](vectorsFile.toPath)
-    dictionary = new WordNetDictionaryImpl[IO](vectorsMap, meaningToVectorMap)
+    dictionary = new WordNetDictionaryImpl[IO](VectorsMap.Empty, Map.empty)
     testDataCreator = new TestDataCreator[IO](tokenExtractor, dictionary, meaningToVectorMap)
     testCases <- testDataCreator.create(inputText, N)
     _ <- writeToFileJson[IO, Seq[TestCase]](outFile, testCases)

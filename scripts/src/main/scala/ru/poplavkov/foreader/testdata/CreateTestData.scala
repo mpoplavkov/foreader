@@ -3,6 +3,7 @@ package ru.poplavkov.foreader.testdata
 import java.io.File
 
 import cats.effect.{ExitCode, IO, IOApp}
+import cats.syntax.applicative._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
 import ru.poplavkov.foreader.Util._
@@ -33,7 +34,14 @@ object CreateTestData extends IOApp {
     dictionary = new WordNetDictionaryImpl[IO](VectorsMap.Empty, Map.empty)
     testDataCreator = new TestDataCreator[IO](tokenExtractor, dictionary, meaningToVectorMap, dictEntryFilter)
     testCases <- testDataCreator.create(inputText, N)
-    _ <- writeToFileJson[IO, Seq[TestCase]](outFile, testCases)
+    previousTestCases <- if (outFile.exists()) {
+      readJsonFile[IO, Seq[TestCase]](outFile)
+    } else {
+      Seq.empty[TestCase].pure[IO]
+    }
+    allTestCases = (previousTestCases ++ testCases).groupBy(_.id).values.map(_.head)
+    _ <- info[IO](s"All test cases count = ${allTestCases.size}")
+    _ <- writeToFileJson[IO, Seq[TestCase]](outFile, allTestCases.toSeq)
   } yield ExitCode.Success
 
 }

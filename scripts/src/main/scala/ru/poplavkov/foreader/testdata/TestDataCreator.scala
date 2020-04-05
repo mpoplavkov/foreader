@@ -13,7 +13,7 @@ import ru.poplavkov.foreader.text.{Token, TokenExtractor}
 import ru.poplavkov.foreader.vector.MathVector
 
 import scala.language.higherKinds
-import scala.util.Random
+import scala.util.hashing.MurmurHash3
 
 class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                    dictionary: Dictionary[F],
@@ -49,7 +49,8 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       suitable <- extractSuitableWords(sentence)
     } yield {
       suitable.map { case (word, meanings) =>
-        TestCase(Random.nextLong().toString, sentence, word, meanings)
+        val id = MurmurHash3.stringHash(s"$meanings$word")
+        TestCase(id.toString, sentence, word, meanings)
       }
     }
 

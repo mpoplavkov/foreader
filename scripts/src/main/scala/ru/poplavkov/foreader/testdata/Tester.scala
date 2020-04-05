@@ -46,19 +46,28 @@ object Tester extends IOApp {
 
       dictionary = new WordNetDictionaryImpl[IO](vectorsMap, meaningToVectorMap)
 
-      answers <- if (isHuman) {
-        handleTestCasesHuman(testCases)
+      alreadyAnswered <- if (outFile.exists()) {
+        readJsonFile[IO, Answers](outFile)
       } else {
-        handleTestCasesDictionary(testCases, lexicalItemExtractor, dictionary)
+        Map.empty[String, Option[DictionaryMeaningId]].pure[IO]
       }
 
-      _ <- writeToFileJson[IO, Map[String, DictionaryMeaningId]](outFile, answers)
+      restTestCases = testCases.filterNot(test => alreadyAnswered.contains(test.id))
+
+      answers <- if (isHuman) {
+        handleTestCasesHuman(restTestCases)
+      } else {
+        handleTestCasesDictionary(restTestCases, lexicalItemExtractor, dictionary)
+      }
+
+      allAnswers = alreadyAnswered ++ answers
+      _ <- writeToFileJson[IO, Answers](outFile, allAnswers)
 
       _ <- if (humanResultFile.exists && dictionaryResultFile.exists) {
         for {
-          humanResult <- readJsonFile[IO, Map[String, DictionaryMeaningId]](humanResultFile)
-          dictResult <- readJsonFile[IO, Map[String, DictionaryMeaningId]](dictionaryResultFile)
-          _ <- compareResults(humanResult, dictResult, testCases)
+          humanResult <- readJsonFile[IO, Answers](humanResultFile)
+          dictResult <- readJsonFile[IO, Answers](dictionaryResultFile)
+          _ <- compareResults(humanResult, dictResult, restTestCases)
         } yield ()
       } else {
         ().pure[IO]
@@ -66,17 +75,21 @@ object Tester extends IOApp {
     } yield ExitCode.Success
   }
 
-  private def compareResults(humanResult: Map[String, DictionaryMeaningId],
-                             dictionaryResult: Map[String, DictionaryMeaningId],
+  private def compareResults(humanResult: Answers,
+                             dictionaryResult: Answers,
                              cases: Seq[TestCase]): IO[Unit] = {
-    val commonKeys = humanResult.keySet.intersect(dictionaryResult.keySet)
+    val testIds = cases.map(_.id)
+    val humanAnswered = humanResult.filterKeys(testIds.contains).collect { case (key, Some(id))  => (key, id) }
+    val dictionaryAnswered = dictionaryResult.filterKeys(testIds.contains).collect { case (key, Some(id)) => (key, id) }
+
+    val commonKeys = humanAnswered.keySet.intersect(dictionaryAnswered.keySet)
     val commonAnswers = commonKeys.filter { key =>
-      humanResult(key) == dictionaryResult(key)
+      humanAnswered(key) == dictionaryAnswered(key)
     }
     val differentAnswers = commonKeys.diff(commonAnswers)
     val correct = commonAnswers.map { testId =>
       val testCase = cases.find(_.id == testId).get
-      val meaning = testCase.meanings.find(_.id == humanResult(testId)).get
+      val meaning = testCase.meanings.find(_.id == humanAnswered(testId)).get
       val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
       s"""Correct:
          |$quiz
@@ -85,8 +98,8 @@ object Tester extends IOApp {
     }.mkString("\n")
     val incorrect = differentAnswers.map { testId =>
       val testCase = cases.find(_.id == testId).get
-      val humanMeaning = testCase.meanings.find(_.id == humanResult(testId)).get
-      val dictMeaning = testCase.meanings.find(_.id == dictionaryResult(testId)).get
+      val humanMeaning = testCase.meanings.find(_.id == humanAnswered(testId)).get
+      val dictMeaning = testCase.meanings.find(_.id == dictionaryAnswered(testId)).get
       val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
       s"""Incorrect:
          |$quiz
@@ -104,8 +117,8 @@ object Tester extends IOApp {
 
   private def handleTestCasesDictionary(testCases: Seq[TestCase],
                                         lexicalItemExtractor: LexicalItemExtractor[IO],
-                                        dictionary: Dictionary[IO]): IO[Map[String, DictionaryMeaningId]] = {
-    val idToMeaningOpt = testCases.toList.traverse { case TestCase(id, sentence, word, _) =>
+                                        dictionary: Dictionary[IO]): IO[Map[String, Option[DictionaryMeaningId]]] =
+    testCases.toList.traverse { case TestCase(id, sentence, word, _) =>
       for {
         items <- lexicalItemExtractor.lexicalItemsFromTokens(sentence)
         targetItem = items.find {
@@ -118,21 +131,18 @@ object Tester extends IOApp {
           case None =>
             Option.empty[DictionaryEntry.Meaning].pure[IO]
         }
-      } yield id -> meaningOpt
-    }
+      } yield id -> meaningOpt.map(_.id)
+    }.map(_.toMap)
 
-    idToMeaningOpt.map(_.collect { case (id, Some(meaning)) => (id, meaning.id) }.toMap)
-  }
-
-  private def handleTestCasesHuman(testCases: Seq[TestCase]): IO[Map[String, DictionaryMeaningId]] = IO.delay {
-    val (answers, _) = testCases.foldLeft((Map.empty[String, DictionaryMeaningId], false)) {
+  private def handleTestCasesHuman(testCases: Seq[TestCase]): IO[Map[String, Option[DictionaryMeaningId]]] = IO.delay {
+    val (answers, _) = testCases.foldLeft((Map.empty[String, Option[DictionaryMeaningId]], false)) {
       case ((result, cancelled), nextCase) =>
         if (cancelled) {
           (result, cancelled)
         } else {
           handleTestCaseHuman(nextCase) match {
-            case Right(Some(meaning)) => (result + (nextCase.id -> meaning.id), cancelled)
-            case Right(None) => (result, cancelled)
+            case Right(Some(meaning)) => (result + (nextCase.id -> Some(meaning.id)), cancelled)
+            case Right(None) => (result + (nextCase.id -> None), cancelled)
             case Left(_) => (result, true)
           }
         }

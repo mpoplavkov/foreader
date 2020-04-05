@@ -58,8 +58,7 @@ object Tester extends IOApp {
         for {
           humanResult <- readJsonFile[IO, Map[String, DictionaryMeaningId]](humanResultFile)
           dictResult <- readJsonFile[IO, Map[String, DictionaryMeaningId]](dictionaryResultFile)
-          (all, correct) = compareResults(humanResult, dictResult)
-          _ <- info[IO](s"Correctly identified $correct/$all meanings ")
+          _ <- compareResults(humanResult, dictResult, testCases)
         } yield ()
       } else {
         ().pure[IO]
@@ -68,12 +67,32 @@ object Tester extends IOApp {
   }
 
   private def compareResults(humanResult: Map[String, DictionaryMeaningId],
-                             dictionaryResult: Map[String, DictionaryMeaningId]): (Int, Int) = {
+                             dictionaryResult: Map[String, DictionaryMeaningId],
+                             cases: Seq[TestCase]): IO[Unit] = {
     val commonKeys = humanResult.keySet.intersect(dictionaryResult.keySet)
     val commonAnswers = commonKeys.filter { key =>
       humanResult(key) == dictionaryResult(key)
     }
-    (commonKeys.size, commonAnswers.size)
+    val differentAnswers = commonKeys.diff(commonAnswers)
+    val correct = commonAnswers.map { testId =>
+      val testCase = cases.find(_.id == testId).get
+      val meaning = testCase.meanings.find(_.id == humanResult(testId)).get
+      val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
+      s"Correct:\n$quiz\n$meaning\n"
+    }.mkString("\n")
+    val incorrect = differentAnswers.map { testId =>
+      val testCase = cases.find(_.id == testId).get
+      val humanMeaning = testCase.meanings.find(_.id == humanResult(testId)).get
+      val dictMeaning = testCase.meanings.find(_.id == dictionaryResult(testId)).get
+      val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
+      s"Incorrect:\n$quiz\nhuman     : $humanMeaning\ndictionary: $dictMeaning\n"
+    }.mkString("\n")
+
+    for {
+      _ <- info[IO](s"Correctly identified ${commonAnswers.size}/${commonKeys.size} meanings")
+      _ <- info[IO](correct)
+      _ <- info[IO](incorrect)
+    } yield ()
   }
 
   private def handleTestCasesDictionary(testCases: Seq[TestCase],
@@ -116,22 +135,9 @@ object Tester extends IOApp {
 
   private def handleTestCaseHuman(testCase: TestCase): Either[Unit, Option[DictionaryEntry.Meaning]] = {
     val TestCase(_, sentence, word, meanings) = testCase
-    val headPosition = sentence.head.position
-    sentence.map {
-      case word: Token.Word => word.copy(position = word.position - headPosition)
-      case punct: Token.Punctuation => punct.copy(position = punct.position - headPosition)
-    }
-    val sentenceStr = sentence.foldLeft("") { case (str, token) =>
-      val tokenStr = token match {
-        case Token.Word(_, original, _, _) => original
-        case Token.Punctuation(_, mark) => mark.value
-      }
-      val spaces = " " * (token.position - str.length)
-      s"$str$spaces$tokenStr"
-    }
 
-    println(sentenceStr)
-    println(" " * word.position + "^" * word.original.length)
+    println(sentenceToQuiz(sentence, word))
+
     meanings.zipWithIndex.foreach { case (meaning, index) =>
       println(s"$index) ${meaning.definition}")
     }
@@ -150,5 +156,24 @@ object Tester extends IOApp {
       }
       Right(answer)
     }
+  }
+
+  private def sentenceToQuiz(sentence: Seq[Token], targetWord: Token.Word): String = {
+    val headPosition = sentence.head.position
+    sentence.map {
+      case word: Token.Word => word.copy(position = word.position - headPosition)
+      case punct: Token.Punctuation => punct.copy(position = punct.position - headPosition)
+    }
+    val sentenceStr = sentence.foldLeft("") { case (str, token) =>
+      val tokenStr = token match {
+        case Token.Word(_, original, _, _) => original
+        case Token.Punctuation(_, mark) => mark.value
+      }
+      val spaces = " " * (token.position - str.length)
+      s"$str$spaces$tokenStr"
+    }
+    val wordStr = " " * targetWord.position + "^" * targetWord.original.length
+
+    s"$sentenceStr\n$wordStr"
   }
 }

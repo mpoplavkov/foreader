@@ -49,7 +49,7 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       suitable <- extractSuitableWords(sentence)
     } yield {
       suitable.map { case (word, meanings) =>
-        TestCase(Random.nextString(10), sentence, word, meanings)
+        TestCase(Random.nextLong().toString, sentence, word, meanings)
       }
     }
 

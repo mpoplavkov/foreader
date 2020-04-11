@@ -33,13 +33,12 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
     } else if (tokens.isEmpty) {
       cases.pure[F]
     } else {
-      val sentence = tokens.takeWhile {
+      val (sentence, rest) = tokens.span {
         case Token.Punctuation(_, mark) => !mark.isEndOfSentence
         case _ => true
       }
-      val rest = tokens.drop(sentence.length + 1)
       testCasesFromSentence(sentence).flatMap { testCases =>
-        createTestCases(rest, n, cases ++ testCases)
+        createTestCases(rest.tail, n, cases ++ testCases)
       }
     }
   }

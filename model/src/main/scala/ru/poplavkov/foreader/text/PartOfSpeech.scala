@@ -1,5 +1,7 @@
 package ru.poplavkov.foreader.text
 
+import io.circe.{Decoder, Encoder}
+
 /**
   * @author mpoplavkov
   */
@@ -59,4 +61,10 @@ object PartOfSpeech {
       case _ => None
     }
   }
+
+  implicit val encoder: Encoder[PartOfSpeech] =
+    Encoder.encodeString.contramap(stringify)
+
+  implicit val decoder: Decoder[PartOfSpeech] =
+    Decoder.decodeString.emap(s => fromString(s).toRight("PartOfSpeech"))
 }

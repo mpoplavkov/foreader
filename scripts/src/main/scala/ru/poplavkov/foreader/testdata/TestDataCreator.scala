@@ -1,0 +1,79 @@
+package ru.poplavkov.foreader.testdata
+
+import cats.effect.Sync
+import cats.instances.list._
+import cats.syntax.applicative._
+import cats.syntax.flatMap._
+import cats.syntax.functor._
+import cats.syntax.traverse._
+import ru.poplavkov.foreader.Globals.DictionaryMeaningId
+import ru.poplavkov.foreader.Util._
+import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
+import ru.poplavkov.foreader.text.{Token, TokenExtractor}
+import ru.poplavkov.foreader.vector.MathVector
+
+import scala.language.higherKinds
+import scala.util.hashing.MurmurHash3
+
+class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
+                                   dictionary: Dictionary[F],
+                                   meaningToVectorMap: Map[DictionaryMeaningId, MathVector],
+                                   dictEntryFilter: DictionaryEntry => Boolean) {
+
+  def create(text: String, n: Int): F[Seq[TestCase]] =
+    for {
+      tokens <- tokenExtractor.extract(text)
+      cases <- createTestCases(tokens, n)
+      _ = require(cases.map(_.id).toSet.size == cases.size)
+    } yield cases
+
+  private def createTestCases(tokens: Seq[Token], n: Int, cases: Seq[TestCase] = Seq.empty): F[Seq[TestCase]] = {
+    if (cases.size >= n) {
+      cases.take(n).pure[F]
+    } else if (tokens.isEmpty) {
+      cases.pure[F]
+    } else {
+      val (sentence, rest) = tokens.span {
+        case Token.Punctuation(_, mark) => !mark.isEndOfSentence
+        case _ => true
+      }
+      testCasesFromSentence(sentence).flatMap { testCases =>
+        createTestCases(rest.tail, n, cases ++ testCases)
+      }
+    }
+  }
+
+  private def testCasesFromSentence(sentence: Seq[Token]): F[Seq[TestCase]] =
+    for {
+      suitable <- extractSuitableWords(sentence)
+    } yield {
+      suitable.map { case (word, meanings) =>
+        val id = MurmurHash3.stringHash(s"$sentence$word")
+        TestCase(id.toString, sentence, word, meanings)
+      }
+    }
+
+  private def extractSuitableWords(sentence: Seq[Token]): F[Seq[(Token.Word, Seq[DictionaryEntry.Meaning])]] =
+    sentence.toList.traverse {
+      case token@Token.Word(_, _, lemma, partOfSpeech) =>
+        for {
+          entry <- dictionary.getDefinition(lemma, partOfSpeech).value
+          meanings = entry.filter(dictEntryFilter).toSeq.flatMap(_.meanings)
+          meaningsInMap = meanings.map(_.id).filter(meaningToVectorMap.contains)
+          _ <- if (meaningsInMap.size < meanings.size) {
+            info(s"Not all meanings in map (${meaningsInMap.size}/${meanings.size}) for `$lemma`, $partOfSpeech")
+          } else {
+            ().pure[F]
+          }
+        } yield {
+          if (meanings.size > 1 && meaningsInMap.nonEmpty) {
+            Some((token, meanings))
+          } else {
+            None
+          }
+        }
+      case _ =>
+        Option.empty[(Token.Word, Seq[DictionaryEntry.Meaning])].pure[F]
+    }.map(_.flatten)
+
+}

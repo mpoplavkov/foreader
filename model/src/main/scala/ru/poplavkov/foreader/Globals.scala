@@ -1,6 +1,7 @@
 package ru.poplavkov.foreader
 
-import com.softwaremill.tagging.@@
+import com.softwaremill.tagging._
+import io.circe.{Decoder, Encoder}
 
 /**
   * Some global definitions
@@ -16,5 +17,9 @@ object Globals {
   trait DictionaryMeaningIdTag
 
   type DictionaryMeaningId = String @@ DictionaryMeaningIdTag
+
+  implicit def taggedStringEncoder[T]: Encoder[String @@ T] = Encoder.encodeString.contramap(identity)
+
+  implicit def taggedStringDecoder[T]: Decoder[String @@ T] = Decoder.decodeString.map(_.taggedWith[T])
 
 }

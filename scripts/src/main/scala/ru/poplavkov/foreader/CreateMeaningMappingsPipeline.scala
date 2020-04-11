@@ -28,7 +28,7 @@ object CreateMeaningMappingsPipeline extends IOApp {
   separateFilesDir.mkdir()
   private val vectorsFile = FileUtil.childFile(LocalDir, "vectors.txt")
   private val corpusDir = FileUtil.childFile(LocalDir, corpusName)
-  private val outFile = FileUtil.childFile(workDir, "clusteredDefinitions.json")
+  private val outFile = FileUtil.childFile(workDir, "clustered_meanings.json")
 
   private val contextLen = 3
   private val tokenExtractor = new CoreNlpTokenExtractor[IO](Language.English)

@@ -48,7 +48,7 @@ class TestDataCreator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       suitable <- extractSuitableWords(sentence)
     } yield {
       suitable.map { case (word, meanings) =>
-        val id = MurmurHash3.stringHash(s"$meanings$word")
+        val id = MurmurHash3.stringHash(s"$sentence$word")
         TestCase(id.toString, sentence, word, meanings)
       }
     }

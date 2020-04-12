@@ -3,6 +3,7 @@ package ru.poplavkov.foreader.testdata
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.instances.list._
 import cats.syntax.applicative._
+import cats.syntax.either._
 import cats.syntax.traverse._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
@@ -79,35 +80,36 @@ object Tester extends IOApp {
                              dictionaryResult: Answers,
                              cases: Seq[TestCase]): IO[Unit] = {
     val humanAnswered = filterSuitableResults(humanResult, cases)
-    val dictionaryAnswered = filterSuitableResults(dictionaryResult, cases)
+    val dictionaryAnswered = filterSuitableResults(dictionaryResult, cases).mapValues(_.head)
 
     val commonKeys = humanAnswered.keySet.intersect(dictionaryAnswered.keySet)
     val commonAnswers = commonKeys.filter { key =>
-      val dictionaryAnswer = dictionaryAnswered(key).head
+      val dictionaryAnswer = dictionaryAnswered(key)
       humanAnswered(key).contains(dictionaryAnswer)
     }
-    val differentAnswers = commonKeys.diff(commonAnswers)
-    val correct = commonAnswers.map { testId =>
+
+    val output: Set[Either[String, String]] = commonKeys.map { testId =>
       val testCase = cases.find(_.id == testId).get
-      val meaning = testCase.meanings.find(_.id == dictionaryAnswered(testId).head).get
+      val dictMeaning = testCase.meanings.find(_.id == dictionaryAnswered(testId)).get
       val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
-      s"""Correct:
-         |$quiz
-         |${meaning.definition}
-         |""".stripMargin
-    }.mkString("\n")
-    val incorrect = differentAnswers.map { testId =>
-      val testCase = cases.find(_.id == testId).get
-      val humanMeanings = humanAnswered(testId).map(id => testCase.meanings.find(_.id == id).get)
-      val dictMeaning = testCase.meanings.find(_.id == dictionaryAnswered(testId).head).get
-      val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
-      val humanDefs = humanMeanings.map(m => s"human     : ${m.definition}").mkString("\n")
-      s"""Incorrect:
-         |$quiz
-         |$humanDefs
-         |dictionary: ${dictMeaning.definition}
-         |""".stripMargin
-    }.mkString("\n")
+      if (commonAnswers.contains(testId)) {
+        s"""Correct:
+           |$quiz
+           |${dictMeaning.definition}
+           |""".stripMargin.asRight
+      } else {
+        val humanMeanings = humanAnswered(testId).map(id => testCase.meanings.find(_.id == id).get)
+        val humanDefs = humanMeanings.map(m => s"human     : ${m.definition}").mkString("\n")
+        s"""Incorrect:
+           |$quiz
+           |$humanDefs
+           |dictionary: ${dictMeaning.definition}
+           |""".stripMargin.asLeft
+      }
+    }
+
+    val correct = output.collect { case Right(s) => s }.mkString("\n")
+    val incorrect = output.collect { case Left(s) => s }.mkString("\n")
 
     for {
       _ <- info[IO](s"Correctly identified ${commonAnswers.size}/${commonKeys.size} meanings")
@@ -194,7 +196,9 @@ object Tester extends IOApp {
       val spaces = " " * (token.position - str.length)
       s"$str$spaces$tokenStr"
     }
-    val wordStr = " " * {targetWord.position - headPosition} + "^" * targetWord.original.length
+    val wordStr = " " * {
+      targetWord.position - headPosition
+    } + "^" * targetWord.original.length
 
     s"$sentenceStr\n$wordStr"
   }

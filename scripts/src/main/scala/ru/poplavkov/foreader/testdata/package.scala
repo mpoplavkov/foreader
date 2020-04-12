@@ -6,6 +6,6 @@ package object testdata {
 
   type Answers = Map[String, Seq[DictionaryMeaningId]]
 
-  val EmptyAnswers = Map.empty[String, Seq[DictionaryMeaningId]]
+  val EmptyAnswers: Answers = Map.empty
 
 }

@@ -196,9 +196,7 @@ object Tester extends IOApp {
       val spaces = " " * (token.position - str.length)
       s"$str$spaces$tokenStr"
     }
-    val wordStr = " " * {
-      targetWord.position - headPosition
-    } + "^" * targetWord.original.length
+    val wordStr = " " * (targetWord.position - headPosition) + "^" * targetWord.original.length
 
     s"$sentenceStr\n$wordStr"
   }

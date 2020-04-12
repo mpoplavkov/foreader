@@ -3,6 +3,7 @@ package ru.poplavkov.foreader.testdata
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.instances.list._
 import cats.syntax.applicative._
+import cats.syntax.either._
 import cats.syntax.traverse._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals.DictionaryMeaningId
@@ -49,7 +50,7 @@ object Tester extends IOApp {
       alreadyAnswered <- if (outFile.exists()) {
         readJsonFile[IO, Answers](outFile)
       } else {
-        Map.empty[String, Option[DictionaryMeaningId]].pure[IO]
+        EmptyAnswers.pure[IO]
       }
 
       restTestCases = testCases.filterNot(test => alreadyAnswered.contains(test.id))
@@ -78,35 +79,37 @@ object Tester extends IOApp {
   private def compareResults(humanResult: Answers,
                              dictionaryResult: Answers,
                              cases: Seq[TestCase]): IO[Unit] = {
-    val testIds = cases.map(_.id)
-    val humanAnswered = humanResult.filterKeys(testIds.contains).collect { case (key, Some(id))  => (key, id) }
-    val dictionaryAnswered = dictionaryResult.filterKeys(testIds.contains).collect { case (key, Some(id)) => (key, id) }
+    val humanAnswered = filterSuitableResults(humanResult, cases)
+    val dictionaryAnswered = filterSuitableResults(dictionaryResult, cases).mapValues(_.head)
 
     val commonKeys = humanAnswered.keySet.intersect(dictionaryAnswered.keySet)
     val commonAnswers = commonKeys.filter { key =>
-      humanAnswered(key) == dictionaryAnswered(key)
+      val dictionaryAnswer = dictionaryAnswered(key)
+      humanAnswered(key).contains(dictionaryAnswer)
     }
-    val differentAnswers = commonKeys.diff(commonAnswers)
-    val correct = commonAnswers.map { testId =>
+
+    val output: Set[Either[String, String]] = commonKeys.map { testId =>
       val testCase = cases.find(_.id == testId).get
-      val meaning = testCase.meanings.find(_.id == humanAnswered(testId)).get
-      val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
-      s"""Correct:
-         |$quiz
-         |${meaning.definition}
-         |""".stripMargin
-    }.mkString("\n")
-    val incorrect = differentAnswers.map { testId =>
-      val testCase = cases.find(_.id == testId).get
-      val humanMeaning = testCase.meanings.find(_.id == humanAnswered(testId)).get
       val dictMeaning = testCase.meanings.find(_.id == dictionaryAnswered(testId)).get
       val quiz = sentenceToQuiz(testCase.sentence, testCase.word)
-      s"""Incorrect:
-         |$quiz
-         |human     : ${humanMeaning.definition}
-         |dictionary: ${dictMeaning.definition}
-         |""".stripMargin
-    }.mkString("\n")
+      if (commonAnswers.contains(testId)) {
+        s"""Correct:
+           |$quiz
+           |${dictMeaning.definition}
+           |""".stripMargin.asRight
+      } else {
+        val humanMeanings = humanAnswered(testId).map(id => testCase.meanings.find(_.id == id).get)
+        val humanDefs = humanMeanings.map(m => s"human     : ${m.definition}").mkString("\n")
+        s"""Incorrect:
+           |$quiz
+           |$humanDefs
+           |dictionary: ${dictMeaning.definition}
+           |""".stripMargin.asLeft
+      }
+    }
+
+    val correct = output.collect { case Right(s) => s }.mkString("\n")
+    val incorrect = output.collect { case Left(s) => s }.mkString("\n")
 
     for {
       _ <- info[IO](s"Correctly identified ${commonAnswers.size}/${commonKeys.size} meanings")
@@ -115,9 +118,14 @@ object Tester extends IOApp {
     } yield ()
   }
 
+  private def filterSuitableResults(answers: Answers, cases: Seq[TestCase]): Answers = {
+    val testIds = cases.map(_.id)
+    answers.filter { case (key, ids) => testIds.contains(key) && ids.nonEmpty }
+  }
+
   private def handleTestCasesDictionary(testCases: Seq[TestCase],
                                         lexicalItemExtractor: LexicalItemExtractor[IO],
-                                        dictionary: Dictionary[IO]): IO[Map[String, Option[DictionaryMeaningId]]] =
+                                        dictionary: Dictionary[IO]): IO[Answers] =
     testCases.toList.traverse { case TestCase(id, sentence, word, _) =>
       for {
         items <- lexicalItemExtractor.lexicalItemsFromTokens(sentence)
@@ -131,18 +139,17 @@ object Tester extends IOApp {
           case None =>
             Option.empty[DictionaryEntry.Meaning].pure[IO]
         }
-      } yield id -> meaningOpt.map(_.id)
+      } yield id -> meaningOpt.map(_.id).toSeq
     }.map(_.toMap)
 
-  private def handleTestCasesHuman(testCases: Seq[TestCase]): IO[Map[String, Option[DictionaryMeaningId]]] = IO.delay {
-    val (answers, _) = testCases.foldLeft((Map.empty[String, Option[DictionaryMeaningId]], false)) {
+  private def handleTestCasesHuman(testCases: Seq[TestCase]): IO[Answers] = IO.delay {
+    val (answers, _) = testCases.foldLeft((EmptyAnswers, false)) {
       case ((result, cancelled), nextCase) =>
         if (cancelled) {
           (result, cancelled)
         } else {
           handleTestCaseHuman(nextCase) match {
-            case Right(Some(meaning)) => (result + (nextCase.id -> Some(meaning.id)), cancelled)
-            case Right(None) => (result + (nextCase.id -> None), cancelled)
+            case Right(meanings) => (result + (nextCase.id -> meanings.map(_.id)), cancelled)
             case Left(_) => (result, true)
           }
         }
@@ -150,7 +157,7 @@ object Tester extends IOApp {
     answers
   }
 
-  private def handleTestCaseHuman(testCase: TestCase): Either[Unit, Option[DictionaryEntry.Meaning]] = {
+  private def handleTestCaseHuman(testCase: TestCase): Either[Unit, Seq[DictionaryEntry.Meaning]] = {
     val TestCase(_, sentence, word, meanings) = testCase
 
     println(sentenceToQuiz(sentence, word))
@@ -163,15 +170,15 @@ object Tester extends IOApp {
     if (readLine == "cancel") {
       Left(())
     } else {
-      val answer = Try {
-        val meaningIndex = readLine.toInt
-        meanings(meaningIndex)
-      }.toOption
+      val answers = Try {
+        val meaningIndex = readLine.split(",").map(_.toInt)
+        meaningIndex.map(meanings.apply)
+      }.toOption.toSeq.flatten
 
-      if (answer.isEmpty) {
+      if (answers.isEmpty) {
         println("Skipping...")
       }
-      Right(answer)
+      Right(answers)
     }
   }
 
@@ -189,7 +196,7 @@ object Tester extends IOApp {
       val spaces = " " * (token.position - str.length)
       s"$str$spaces$tokenStr"
     }
-    val wordStr = " " * {targetWord.position - headPosition} + "^" * targetWord.original.length
+    val wordStr = " " * (targetWord.position - headPosition) + "^" * targetWord.original.length
 
     s"$sentenceStr\n$wordStr"
   }

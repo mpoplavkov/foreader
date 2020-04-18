@@ -18,10 +18,12 @@ object TextContext {
   object SurroundingWords {
 
     def fromTokens(before: Seq[Token.Word], after: Seq[Token.Word]): SurroundingWords =
-      new SurroundingWords(before.map(_.lemma), after.map(_.lemma))
+      new SurroundingWords(before.map(word2Context), after.map(word2Context))
 
     val Empty: SurroundingWords = SurroundingWords(Seq.empty, Seq.empty)
 
   }
+
+  def word2Context(word: Token.Word): WordStr = word.lemma
 
 }

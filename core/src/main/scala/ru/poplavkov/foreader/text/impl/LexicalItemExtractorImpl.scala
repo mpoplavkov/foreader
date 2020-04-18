@@ -9,7 +9,7 @@ import cats.syntax.traverse._
 import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.dictionary.MweSet
 import ru.poplavkov.foreader.text.impl.LexicalItemExtractorImpl._
-import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, Token}
+import ru.poplavkov.foreader.text.{ContextExtractor, LexicalItem, LexicalItemExtractor, Token}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -23,7 +23,7 @@ class LexicalItemExtractorImpl[F[+_] : Monad](mweSet: MweSet[F])
   override def lexicalItemsFromSentences(tokensBySentences: Seq[Seq[Token]]): F[Seq[LexicalItem]] = {
     tokensBySentences.toList.traverse { sentence =>
       tokensToLexicalItemsInternal(sentence.toList).map { items =>
-        items.map(item => item.setContext(Some(extractContext(sentence, item))))
+        items.map(item => item.setContext(Some(ContextExtractor(sentence, item.wordTokens))))
       }
     }.map(_.flatten)
   }
@@ -104,13 +104,5 @@ object LexicalItemExtractorImpl {
       case _ =>
         (alreadyExtracted, tokens)
     }
-
-  private def extractContext(sentence: Seq[Token], item: LexicalItem): TextContext = {
-    val sentenceWords = sentence.collect { case word: Token.Word => word }
-    val itemOriginals = item.originals
-    val (before, afterWithItemWords) = sentenceWords.span(w => !itemOriginals.contains(w.original))
-    val after = afterWithItemWords.filterNot(w => itemOriginals.contains(w.original))
-    TextContext.SurroundingWords.fromTokens(before, after)
-  }
 
 }

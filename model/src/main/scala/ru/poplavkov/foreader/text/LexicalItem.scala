@@ -19,6 +19,8 @@ sealed trait LexicalItem {
 
   final def partsOfSpeech: Seq[PartOfSpeech] = fromWords(_.partOfSpeech)
 
+  final def wordTokens: Seq[Token.Word] = fromWords(identity)
+
   final def lemmas: Seq[WordStr] = fromWords(_.lemma)
 
   final def originals: Seq[WordStr] = fromWords(_.original)

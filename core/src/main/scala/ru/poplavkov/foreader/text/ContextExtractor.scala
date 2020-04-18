@@ -3,24 +3,21 @@ package ru.poplavkov.foreader.text
 /**
   * @author mpoplavkov
   */
-trait ContextExtractor {
+object ContextExtractor {
 
   /**
-    * Extracts context for the tokens starting at `startIndex`
-    * and ending at `endIndex`
+    * Extracts context for the `words` given the sentence, where these words
+    * were extracted from
     */
-  def extractContext(tokens: Seq[Token], startIndex: Int, endIndex: Int): TextContext
+  def apply(sentence: Seq[Token], words: Seq[Token.Word]): TextContext = {
+    require(words.forall(sentence.contains), "Words should be a part of the sentence")
+    val sentenceWords = sentence.collect { case word: Token.Word => word }
+    val (before, afterWithItemWords) = sentenceWords.span(w => !words.contains(w))
+    val after = afterWithItemWords.filterNot(words.contains)
+    TextContext.SurroundingWords.fromTokens(before, after)
+  }
 
-  final def extractContext(tokens: Seq[Token], elementIndex: Int): TextContext =
-    extractContext(tokens, elementIndex, elementIndex)
-
-  /**
-    * Extracts context using tokens in reverse order preceding an
-    * item and tokens following this item
-    *
-    * @param beforeReversed preceded tokens
-    * @param after          followed tokens
-    */
-  def extractContext(beforeReversed: Seq[Token], after: Seq[Token]): TextContext
+  def apply(sentence: Seq[Token], word: Token.Word): TextContext =
+    ContextExtractor(sentence, Seq(word))
 
 }

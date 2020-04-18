@@ -5,7 +5,8 @@ import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.SpecBase
 import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.dictionary.MweSet
-import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, Token}
+import ru.poplavkov.foreader.text._
+import ru.poplavkov.foreader.text.impl.LexicalItemExtractorImplSpec._
 
 /**
   * @author mpoplavkov
@@ -195,12 +196,8 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .when(mweSet)
         .getMwesStartingWith(anyObject)
 
-      val expected = words.indices.map { i =>
-        val (beforeWords, otherWords) = words.splitAt(i)
-        val word = otherWords.head
-        val before = beforeWords.map(_.lemma)
-        val after = otherWords.tail.map(_.lemma)
-        LexicalItem.SingleWord(word, Some(TextContext.SurroundingWords(before, after)))
+      val expected = words.map { word =>
+        LexicalItem.SingleWord(word, Some(ContextExtractor(words, word)))
       }
 
       lexicalItemExtractor.lexicalItemsFromSentence(words) shouldBe expected
@@ -211,7 +208,8 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val after = genWords(1, 5)
       val firstMweWord = generate[Token.Word]
       val secondMweWord = generate[Token.Word]
-      val sentence = (before :+ firstMweWord :+ secondMweWord) ++ after
+      val mwe = Seq(firstMweWord, secondMweWord)
+      val sentence = before ++ mwe ++ after
 
       doReturn(Set.empty)
         .when(mweSet)
@@ -220,10 +218,7 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .when(mweSet)
         .getMwesStartingWith(firstMweWord.lemma)
 
-      val expectedMwe = LexicalItem.MultiWordExpression(
-        Seq(firstMweWord, secondMweWord),
-        Some(TextContext.SurroundingWords(before.map(_.lemma), after.map(_.lemma)))
-      )
+      val expectedMwe = LexicalItem.MultiWordExpression(mwe, Some(ContextExtractor(sentence, mwe)))
 
       val actualMwe = lexicalItemExtractor.lexicalItemsFromSentence(sentence).collect {
         case mwe: LexicalItem.MultiWordExpression =>
@@ -234,6 +229,10 @@ class LexicalItemExtractorImplSpec extends SpecBase {
     }
 
   }
+
+}
+
+object LexicalItemExtractorImplSpec {
 
   implicit class RichSeqItems(items: Seq[LexicalItem]) {
 

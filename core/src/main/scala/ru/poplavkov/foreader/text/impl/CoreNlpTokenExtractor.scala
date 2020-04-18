@@ -23,17 +23,15 @@ class CoreNlpTokenExtractor[F[_] : Sync](language: Language) extends TokenExtrac
 
   private val pipeline = createCoreNlpPipeline(language)
 
-  override def extract(text: String): F[Seq[Token]] = Sync[F].delay {
+  override def extractSentences(text: String): F[Seq[Seq[Token]]] = Sync[F].delay {
     val document = new CoreDocument(text)
     pipeline.annotate(document)
 
-    for {
-      sentence <- document.sentences().asScala
-      token <- extractTokensFromSentence(sentence)
-    } yield token
+    document.sentences().asScala.map { sentence =>
+      extractTokensFromSentence(sentence)
+    }
 
   }
-
 }
 
 object CoreNlpTokenExtractor {

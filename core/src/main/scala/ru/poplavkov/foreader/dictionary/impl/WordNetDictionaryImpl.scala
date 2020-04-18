@@ -67,7 +67,7 @@ class WordNetDictionaryImpl[F[_] : Sync](vectorsMap: VectorsMap,
   }
 
   private def orderMeaningsByContext(entry: DictionaryEntry,
-                                     context: TextContext): DictionaryEntry =
+                                     context: Option[TextContext]): DictionaryEntry =
     contextToVector(context) match {
       case Some(contextVector) =>
         val meaningsToDistance = entry.meanings.map { meaning =>
@@ -90,16 +90,16 @@ class WordNetDictionaryImpl[F[_] : Sync](vectorsMap: VectorsMap,
         entry
     }
 
-  private def contextToVector(context: TextContext): Option[MathVector] =
+  private def contextToVector(context: Option[TextContext]): Option[MathVector] =
     context match {
-      case TextContext.SurroundingWords(before, after) =>
+      case Some(TextContext.SurroundingWords(before, after)) =>
         val vectors = (before ++ after).flatMap(vectorsMap.getVector)
         if (vectors.nonEmpty) {
           Some(VectorUtil.avgVector(vectorsMap.dimension, vectors))
         } else {
           None
         }
-      case TextContext.Empty =>
+      case None =>
         None
     }
 

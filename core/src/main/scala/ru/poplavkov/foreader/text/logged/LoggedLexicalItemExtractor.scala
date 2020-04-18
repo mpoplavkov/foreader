@@ -10,8 +10,8 @@ import scala.language.higherKinds
   */
 trait LoggedLexicalItemExtractor[F[_]] extends LexicalItemExtractor[F] with LoggingF[F] {
 
-  abstract override def lexicalItemsFromTokens(tokens: Seq[Token]): F[Seq[LexicalItem]] =
-    super.lexicalItemsFromTokens(tokens)
-      .loggedF("lexicalItemsFromTokens", Map("tokens" -> tokens))()
+  abstract override def lexicalItemsFromSentences(tokensBySentences: Seq[Seq[Token]]): F[Seq[LexicalItem]] =
+    super.lexicalItemsFromSentences(tokensBySentences)
+      .loggedF("lexicalItemsFromSentences", Map("tokensBySentences" -> tokensBySentences))()
 
 }

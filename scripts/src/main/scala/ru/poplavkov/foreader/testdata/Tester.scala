@@ -128,7 +128,7 @@ object Tester extends IOApp {
                                         dictionary: Dictionary[IO]): IO[Answers] =
     testCases.toList.traverse { case TestCase(id, sentence, word, _) =>
       for {
-        items <- lexicalItemExtractor.lexicalItemsFromTokens(sentence)
+        items <- lexicalItemExtractor.lexicalItemsFromSentence(sentence)
         targetItem = items.find {
           case LexicalItem.SingleWord(w, _) if w == word => true
           case _ => false

@@ -5,7 +5,6 @@ import ru.poplavkov.foreader.Generators._
 import ru.poplavkov.foreader.SpecBase
 import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.dictionary.MweSet
-import ru.poplavkov.foreader.text.LexicalItem.{MultiWordExpression, SingleWord}
 import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, Token}
 
 /**
@@ -14,11 +13,8 @@ import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContex
 class LexicalItemExtractorImplSpec extends SpecBase {
 
   private val mweSet: MweSet[CovariantId] = mock[MweSet[CovariantId]]
-  private val contextLen = generate(Gen.chooseNum(1, 5))
 
-  private val contextExtractor = new ContextExtractorImpl(contextLen)
-
-  def lexicalItemExtractor: LexicalItemExtractor[CovariantId] = new LexicalItemExtractorImpl(mweSet, contextExtractor)
+  def lexicalItemExtractor: LexicalItemExtractor[CovariantId] = new LexicalItemExtractorImpl(mweSet)
 
   "LexicalItemExtractorImpl" should {
 
@@ -29,8 +25,8 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .when(mweSet)
         .getMwesStartingWith(anyObject)
 
-      val expected = Seq(LexicalItem.SingleWord(word, TextContext.SurroundingWords.Empty))
-      lexicalItemExtractor.lexicalItemsFromTokens(Seq(word)) shouldBe expected
+      val expected = Seq(LexicalItem.SingleWord(word, Some(TextContext.SurroundingWords.Empty)))
+      lexicalItemExtractor.lexicalItemsFromSentence(Seq(word)) shouldBe expected
     }
 
     "extract sequence of single words" in {
@@ -40,8 +36,8 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .when(mweSet)
         .getMwesStartingWith(anyObject)
 
-      val expected = words.map(LexicalItem.SingleWord(_, TextContext.Empty))
-      lexicalItemExtractor.lexicalItemsFromTokens(words).withEmptyContext shouldBe expected
+      val expected = words.map(LexicalItem.SingleWord(_))
+      lexicalItemExtractor.lexicalItemsFromSentence(words).withEmptyContext shouldBe expected
     }
 
     "extract sequence of single words despite on punctuation" in {
@@ -56,7 +52,7 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .getMwesStartingWith(anyObject)
 
       val expected = words.map(LexicalItem.SingleWord(_))
-      lexicalItemExtractor.lexicalItemsFromTokens(sentence).withEmptyContext shouldBe expected
+      lexicalItemExtractor.lexicalItemsFromSentence(sentence).withEmptyContext shouldBe expected
     }
 
     "extract small multi word expression" in {
@@ -68,8 +64,9 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .when(mweSet)
         .getMwesStartingWith(startingWord.lemma)
 
-      val expected = Seq(LexicalItem.MultiWordExpression(Seq(startingWord, secondWord), TextContext.SurroundingWords.Empty))
-      lexicalItemExtractor.lexicalItemsFromTokens(sentence) shouldBe expected
+      val expected =
+        Seq(LexicalItem.MultiWordExpression(Seq(startingWord, secondWord), Some(TextContext.SurroundingWords.Empty)))
+      lexicalItemExtractor.lexicalItemsFromSentence(sentence) shouldBe expected
 
     }
 
@@ -82,8 +79,8 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .when(mweSet)
         .getMwesStartingWith(startingWord.lemma)
 
-      val expected = Seq(LexicalItem.MultiWordExpression(sentence, TextContext.SurroundingWords.Empty))
-      lexicalItemExtractor.lexicalItemsFromTokens(sentence) shouldBe expected
+      val expected = Seq(LexicalItem.MultiWordExpression(sentence, Some(TextContext.SurroundingWords.Empty)))
+      lexicalItemExtractor.lexicalItemsFromSentence(sentence) shouldBe expected
     }
 
     "extract multi word expression with words in between" in {
@@ -102,7 +99,7 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val expectedMultiWord = Seq(LexicalItem.MultiWordExpression(Seq(startingWord, secondWord)))
       val expectedOthers = otherWords.map(LexicalItem.SingleWord(_))
       val expected = expectedMultiWord ++ expectedOthers
-      lexicalItemExtractor.lexicalItemsFromTokens(sentence).withEmptyContext shouldBe expected
+      lexicalItemExtractor.lexicalItemsFromSentence(sentence).withEmptyContext shouldBe expected
 
     }
 
@@ -118,8 +115,8 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .when(mweSet)
         .getMwesStartingWith(startingWord.lemma)
 
-      val expected = Seq(LexicalItem.MultiWordExpression(Seq(startingWord, secondWord), TextContext.SurroundingWords.Empty))
-      lexicalItemExtractor.lexicalItemsFromTokens(sentence) shouldBe expected
+      val expected = Seq(LexicalItem.MultiWordExpression(Seq(startingWord, secondWord), Some(TextContext.SurroundingWords.Empty)))
+      lexicalItemExtractor.lexicalItemsFromSentence(sentence) shouldBe expected
     }
 
     "not extract multi word expression with not matched MWE for the first word" in {
@@ -136,7 +133,7 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .getMwesStartingWith(startingWord.lemma)
 
       val expected = Seq(LexicalItem.SingleWord(startingWord), LexicalItem.SingleWord(otherWord))
-      lexicalItemExtractor.lexicalItemsFromTokens(sentence).withEmptyContext shouldBe expected
+      lexicalItemExtractor.lexicalItemsFromSentence(sentence).withEmptyContext shouldBe expected
     }
 
     "not extract multi word expression with not fully matched MWE" in {
@@ -153,7 +150,7 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .getMwesStartingWith(startingWord.lemma)
 
       val expected = Seq(LexicalItem.SingleWord(startingWord), LexicalItem.SingleWord(secondWord))
-      lexicalItemExtractor.lexicalItemsFromTokens(sentence).withEmptyContext shouldBe expected
+      lexicalItemExtractor.lexicalItemsFromSentence(sentence).withEmptyContext shouldBe expected
     }
 
     "not extract multi word expression with punctuation in between" in {
@@ -170,7 +167,7 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .getMwesStartingWith(startingWord.lemma)
 
       val expected = Seq(LexicalItem.SingleWord(startingWord), LexicalItem.SingleWord(secondWord))
-      lexicalItemExtractor.lexicalItemsFromTokens(sentence).withEmptyContext shouldBe expected
+      lexicalItemExtractor.lexicalItemsFromSentence(sentence).withEmptyContext shouldBe expected
 
     }
 
@@ -187,7 +184,7 @@ class LexicalItemExtractorImplSpec extends SpecBase {
         .getMwesStartingWith(startingWord.lemma)
 
       val expected = Seq(LexicalItem.SingleWord(secondWord), LexicalItem.SingleWord(startingWord))
-      lexicalItemExtractor.lexicalItemsFromTokens(sentence).withEmptyContext shouldBe expected
+      lexicalItemExtractor.lexicalItemsFromSentence(sentence).withEmptyContext shouldBe expected
 
     }
 
@@ -201,17 +198,17 @@ class LexicalItemExtractorImplSpec extends SpecBase {
       val expected = words.indices.map { i =>
         val (beforeWords, otherWords) = words.splitAt(i)
         val word = otherWords.head
-        val before = beforeWords.map(_.lemma).takeRight(contextLen)
-        val after = otherWords.tail.map(_.lemma).take(contextLen)
-        LexicalItem.SingleWord(word, TextContext.SurroundingWords(before, after))
+        val before = beforeWords.map(_.lemma)
+        val after = otherWords.tail.map(_.lemma)
+        LexicalItem.SingleWord(word, Some(TextContext.SurroundingWords(before, after)))
       }
 
-      lexicalItemExtractor.lexicalItemsFromTokens(words) shouldBe expected
+      lexicalItemExtractor.lexicalItemsFromSentence(words) shouldBe expected
     }
 
     "extract mwe with context" in {
-      val before = genWords(1, contextLen)
-      val after = genWords(1, contextLen)
+      val before = genWords(1, 5)
+      val after = genWords(1, 5)
       val firstMweWord = generate[Token.Word]
       val secondMweWord = generate[Token.Word]
       val sentence = (before :+ firstMweWord :+ secondMweWord) ++ after
@@ -225,10 +222,10 @@ class LexicalItemExtractorImplSpec extends SpecBase {
 
       val expectedMwe = LexicalItem.MultiWordExpression(
         Seq(firstMweWord, secondMweWord),
-        TextContext.SurroundingWords(before.map(_.lemma), after.map(_.lemma))
+        Some(TextContext.SurroundingWords(before.map(_.lemma), after.map(_.lemma)))
       )
 
-      val actualMwe = lexicalItemExtractor.lexicalItemsFromTokens(sentence).collect {
+      val actualMwe = lexicalItemExtractor.lexicalItemsFromSentence(sentence).collect {
         case mwe: LexicalItem.MultiWordExpression =>
           mwe
       }.head
@@ -240,10 +237,7 @@ class LexicalItemExtractorImplSpec extends SpecBase {
 
   implicit class RichSeqItems(items: Seq[LexicalItem]) {
 
-    def withEmptyContext: Seq[LexicalItem] = items.map {
-      case single: SingleWord => single.copy(context = TextContext.Empty)
-      case mwe: MultiWordExpression => mwe.copy(context = TextContext.Empty)
-    }
+    def withEmptyContext: Seq[LexicalItem] = items.map(_.setContext(None))
 
   }
 

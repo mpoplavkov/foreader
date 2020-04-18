@@ -1,12 +1,15 @@
 package ru.poplavkov.foreader.text.impl
 
 import cats.Monad
+import cats.instances.list._
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
+import cats.syntax.functor._
+import cats.syntax.traverse._
 import ru.poplavkov.foreader.Globals.WordStr
 import ru.poplavkov.foreader.dictionary.MweSet
 import ru.poplavkov.foreader.text.impl.LexicalItemExtractorImpl._
-import ru.poplavkov.foreader.text.{ContextExtractor, LexicalItem, LexicalItemExtractor, TextContext, Token}
+import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, Token}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -14,44 +17,37 @@ import scala.language.higherKinds
 /**
   * @author mpoplavkov
   */
-class LexicalItemExtractorImpl[F[+ _] : Monad](mweSet: MweSet[F], contextExtractor: ContextExtractor)
+class LexicalItemExtractorImpl[F[+_] : Monad](mweSet: MweSet[F])
   extends LexicalItemExtractor[F] {
 
-  override def lexicalItemsFromTokens(tokens: Seq[Token]): F[Seq[LexicalItem]] =
-    tokensToLexicalItemsInternal(tokens.toList)
+  override def lexicalItemsFromSentences(tokensBySentences: Seq[Seq[Token]]): F[Seq[LexicalItem]] = {
+    tokensBySentences.toList.traverse { sentence =>
+      tokensToLexicalItemsInternal(sentence.toList).map { items =>
+        items.map(item => item.setContext(Some(extractContext(sentence, item))))
+      }
+    }.map(_.flatten)
+  }
 
   // TODO: check if it would not fail with StackOverflow for huge inputs
-  private def tokensToLexicalItemsInternal(tokens: List[Token],
-                                           resultReversed: List[LexicalItem] = Nil,
-                                           tokensBeforeReversed: List[Token] = Nil): F[Seq[LexicalItem]] = {
-
-    def ctxt: Seq[Token] => TextContext = contextExtractor.extractContext(tokensBeforeReversed, _)
-
-    tokens match {
+  private def tokensToLexicalItemsInternal(sentenceTokens: List[Token],
+                                           resultReversed: List[LexicalItem] = Nil): F[Seq[LexicalItem]] =
+    sentenceTokens match {
       case (word: Token.Word) :: rest =>
         mweSet.getMwesStartingWith(word.lemma).flatMap { set =>
-          firstFoundMweAndRest(rest, set) match {
-            case Some((mwe, newRest)) =>
-              val item = LexicalItem.MultiWordExpression(word :: mwe, ctxt(newRest))
-              tokensToLexicalItemsInternal(
-                newRest,
-                item :: resultReversed,
-                item.words.reverse.toList ++ tokensBeforeReversed
-              )
-            case None =>
-              tokensToLexicalItemsInternal(
-                rest,
-                LexicalItem.SingleWord(word, ctxt(rest)) :: resultReversed,
-                word :: tokensBeforeReversed
-              )
-          }
+          val (newItem, newRest) =
+            firstFoundMweAndRest(rest, set) match {
+              case Some((mwe, newRest)) =>
+                (LexicalItem.MultiWordExpression(word :: mwe), newRest)
+              case None =>
+                (LexicalItem.SingleWord(word), rest)
+            }
+          tokensToLexicalItemsInternal(newRest, newItem :: resultReversed)
         }
-      case head :: rest =>
-        tokensToLexicalItemsInternal(rest, resultReversed, head :: tokensBeforeReversed)
+      case _ :: rest =>
+        tokensToLexicalItemsInternal(rest, resultReversed)
       case Nil =>
         resultReversed.reverse.pure[F]
     }
-  }
 }
 
 object LexicalItemExtractorImpl {
@@ -93,6 +89,7 @@ object LexicalItemExtractorImpl {
     }
   }
 
+  // TODO: think about this method, since tokens are the sentence
   /**
     * Extracts list of words from the beginning of the given `tokens`
     * till the first punctuation mark or the end of tokens
@@ -107,5 +104,13 @@ object LexicalItemExtractorImpl {
       case _ =>
         (alreadyExtracted, tokens)
     }
+
+  private def extractContext(sentence: Seq[Token], item: LexicalItem): TextContext = {
+    val sentenceWords = sentence.collect { case word: Token.Word => word }
+    val itemOriginals = item.originals
+    val (before, afterWithItemWords) = sentenceWords.span(w => !itemOriginals.contains(w.original))
+    val after = afterWithItemWords.filterNot(w => itemOriginals.contains(w.original))
+    TextContext.SurroundingWords.fromTokens(before, after)
+  }
 
 }

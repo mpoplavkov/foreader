@@ -65,8 +65,8 @@ class TextProcessingEngineImpl[F[_] : Monad](tokenExtractor: TokenExtractor[F],
 
   private def itemsFromText(str: String): F[Seq[LexicalItem]] =
     for {
-      tokens <- tokenExtractor.extract(str)
-      items <- lexicalItemExtractor.lexicalItemsFromTokens(tokens)
+      sentences <- tokenExtractor.extractSentences(str)
+      items <- lexicalItemExtractor.lexicalItemsFromSentences(sentences)
     } yield items
 
 }

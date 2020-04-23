@@ -34,7 +34,7 @@ object Tester extends IOApp {
   private val dictionaryResultFile = FileUtil.childFile(TestDataDir, "result_dictionary.json")
 
   private val mweSet = new EmptyMweSetImpl[IO]
-  private val lexicalItemExtractor = new LexicalItemExtractorImpl[IO](mweSet, commonContextExtractor)
+  private val lexicalItemExtractor = new LexicalItemExtractorImpl[IO](mweSet)
 
   override def run(args: List[String]): IO[ExitCode] = {
     val outFile = if (isHuman) humanResultFile else dictionaryResultFile

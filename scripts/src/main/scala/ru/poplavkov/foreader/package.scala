@@ -16,8 +16,6 @@ package object foreader {
   val TestDataDir: File = FileUtil.childFile(LocalDir, "testdata")
   TestDataDir.mkdir()
 
-  type WordToVectorsMap = Map[WordWithPos, Seq[MathVector]]
-
   implicit val meaningIdKeyEncoder: KeyEncoder[DictionaryMeaningId] = identity
 
   implicit val meaningIdKeyDecoder: KeyDecoder[DictionaryMeaningId] = s => Some(s.taggedWith)

@@ -7,6 +7,10 @@ import scala.language.higherKinds
   */
 trait LexicalItemExtractor[F[_]] {
 
-  def lexicalItemsFromTokens(tokens: Seq[Token]): F[Seq[LexicalItem]]
+  def lexicalItemsFromSentences(tokensBySentences: Seq[Seq[Token]]): F[Seq[LexicalItem]]
+
+  final def lexicalItemsFromSentence(sentenceTokens: Seq[Token]): F[Seq[LexicalItem]] =
+    lexicalItemsFromSentences(Seq(sentenceTokens))
+
 
 }

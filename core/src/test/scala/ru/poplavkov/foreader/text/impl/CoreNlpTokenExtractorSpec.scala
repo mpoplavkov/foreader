@@ -118,6 +118,11 @@ class CoreNlpTokenExtractorSpec extends SpecBase {
       Word(144, w"lesson-books", w"lesson-book", PartOfSpeech.Noun),
       Punctuation(156, PunctuationMark.Exclamation),
       Punctuation(157, PunctuationMark.Quote("''"))
+    ),
+    TestCase(
+      description = "parse a phrase with hyphen without spaces",
+      text = "tip-top",
+      Word(0, w"tip-top", w"tip-top", PartOfSpeech.Adjective)
     )
   )
 

@@ -10,9 +10,16 @@ import ru.poplavkov.foreader.Globals.WordStr
   */
 sealed trait LexicalItem {
 
-  def context: TextContext
+  def context: Option[TextContext]
+
+  def setContext(context: Option[TextContext]): LexicalItem = this match {
+    case single: LexicalItem.SingleWord => single.copy(context = context)
+    case mwe: LexicalItem.MultiWordExpression => mwe.copy(context = context)
+  }
 
   final def partsOfSpeech: Seq[PartOfSpeech] = fromWords(_.partOfSpeech)
+
+  final def wordTokens: Seq[Token.Word] = fromWords(identity)
 
   final def lemmas: Seq[WordStr] = fromWords(_.lemma)
 
@@ -28,9 +35,9 @@ sealed trait LexicalItem {
 object LexicalItem {
 
   case class SingleWord(word: Token.Word,
-                        context: TextContext = TextContext.Empty) extends LexicalItem
+                        context: Option[TextContext] = None) extends LexicalItem
 
   case class MultiWordExpression(words: Seq[Token.Word],
-                                 context: TextContext = TextContext.Empty) extends LexicalItem
+                                 context: Option[TextContext] = None) extends LexicalItem
 
 }

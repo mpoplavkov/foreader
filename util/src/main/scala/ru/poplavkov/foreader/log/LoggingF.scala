@@ -15,6 +15,7 @@ import scala.util.control.NonFatal
   */
 trait LoggingF[F[_]] extends Logging with ApplicativeErrorSupport[F] {
 
+  // TODO: make toMsg to be an implicit param
   implicit class LoggedF[T](val ft: F[T]) {
     def loggedF(method: String, args: Map[String, Any], level: LogLevel = LogLevel.Debug)
                (toMsg: PartialFunction[T, String] = defaultLogMsg): F[T] =

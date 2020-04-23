@@ -39,7 +39,7 @@ class WordsetDictionaryMapExtractor[F[_] : Applicative](pathToWordsetDictionary:
         jsonObject <- jsonFileContent.asObject.toSeq
         (key, entry) <- jsonObject.toList
         dictEntry <- extractDictionaryEntryFromJson(entry)
-        words = key.split(" ").map(_.taggedWith[WordStrTag])
+        words = key.split(" ").map(_.taggedWith[WordStrTag]) // TODO: think about punctuation marks in keys
       } yield words.toSeq -> dictEntry).toMap
 
     dictMap.pure

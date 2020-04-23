@@ -9,8 +9,6 @@ sealed trait TextContext
 
 object TextContext {
 
-  case object Empty extends TextContext
-
   case class SurroundingWords(before: Seq[WordStr], after: Seq[WordStr]) extends TextContext {
 
     def allWords: Seq[WordStr] = before ++ after
@@ -19,8 +17,13 @@ object TextContext {
 
   object SurroundingWords {
 
+    def fromTokens(before: Seq[Token.Word], after: Seq[Token.Word]): SurroundingWords =
+      new SurroundingWords(before.map(word2Context), after.map(word2Context))
+
     val Empty: SurroundingWords = SurroundingWords(Seq.empty, Seq.empty)
 
   }
+
+  def word2Context(word: Token.Word): WordStr = word.lemma
 
 }

@@ -10,6 +10,8 @@ import ru.poplavkov.foreader.Globals.WordStr
   */
 sealed trait LexicalItem {
 
+  def qualifier: String
+
   def context: Option[TextContext]
 
   def setContext(context: Option[TextContext]): LexicalItem = this match {
@@ -35,9 +37,17 @@ sealed trait LexicalItem {
 object LexicalItem {
 
   case class SingleWord(word: Token.Word,
-                        context: Option[TextContext] = None) extends LexicalItem
+                        context: Option[TextContext] = None) extends LexicalItem {
+
+    override def qualifier: String = s"${word.lemma}_${PartOfSpeech.stringify(word.partOfSpeech)}"
+
+  }
 
   case class MultiWordExpression(words: Seq[Token.Word],
-                                 context: Option[TextContext] = None) extends LexicalItem
+                                 context: Option[TextContext] = None) extends LexicalItem {
+
+    override def qualifier: String = words.map(_.lemma).mkString("_")
+
+  }
 
 }

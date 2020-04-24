@@ -21,7 +21,10 @@ object Util {
     decode[T](content).right.get
   }
 
-  def writeToFileJson[F[_] : Sync, T: Encoder](file: File, t: T): F[Unit] =
-    FileUtil.writeToFile(file, t.asJson.spaces2)
+  def writeToFileJson[F[_] : Sync, T: Encoder](file: File, t: T, readable: Boolean = true): F[Unit] = {
+    val json = t.asJson
+    val str = if (readable) json.spaces2 else json.noSpaces
+    FileUtil.writeToFile(file, str)
+  }
 
 }

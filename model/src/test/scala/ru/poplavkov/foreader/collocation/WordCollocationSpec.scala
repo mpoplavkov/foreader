@@ -79,5 +79,45 @@ class WordCollocationSpec extends SpecBase {
 
       actualKWindow shouldBe expectedKWindow
     }
+
+    "extract collocations even with small K" in {
+      val next = generate[WordStr]
+      val secondNext = generate[WordStr]
+      val prev = generate[WordStr]
+      val secondPrev = generate[WordStr]
+      val context = TextContext.SurroundingWords(
+        before = Seq(secondPrev, prev),
+        after = Seq(next, secondNext)
+      )
+
+      val expected = Set(
+        WordCollocation.NextWord(next),
+        WordCollocation.PrevWord(prev),
+        WordCollocation.NextTwoWords(next, secondNext),
+        WordCollocation.PrevTwoWords(prev, secondPrev),
+        WordCollocation.SurroundingWords(prev, next)
+      )
+
+      WordCollocation.fromContext(context, 0) shouldBe expected
+    }
+
+    "extract collocations for surrounding words" in {
+      val next = generate[WordStr]
+      val prev = generate[WordStr]
+      val context = TextContext.SurroundingWords(
+        before = Seq(prev),
+        after = Seq(next)
+      )
+
+      val expected = Set(
+        WordCollocation.NextWord(next),
+        WordCollocation.PrevWord(prev),
+        WordCollocation.SurroundingWords(prev, next),
+        WordCollocation.KWindowWord(next),
+        WordCollocation.KWindowWord(prev)
+      )
+
+      WordCollocation.fromContext(context, 2) shouldBe expected
+    }
   }
 }

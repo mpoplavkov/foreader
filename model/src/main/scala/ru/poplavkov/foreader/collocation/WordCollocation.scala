@@ -14,12 +14,10 @@ object WordCollocation {
 
   def fromContext(context: TextContext, k: Int): Set[WordCollocation] = context match {
     case TextContext.SurroundingWords(before, after) =>
-      val beforeK = before.takeRight(k)
-      val afterK = after.take(k)
-      val next = afterK.headOption
-      val secondNext = afterK.drop(1).headOption
-      val prev = beforeK.lastOption
-      val secondPrev = beforeK.dropRight(1).lastOption
+      val next = after.headOption
+      val secondNext = after.drop(1).headOption
+      val prev = before.lastOption
+      val secondPrev = before.dropRight(1).lastOption
 
       val set: Set[Traversable[WordCollocation]] = Set(
         next.map(NextWord),
@@ -27,7 +25,7 @@ object WordCollocation {
         (next, secondNext).pairMap(NextTwoWords),
         (prev, secondPrev).pairMap(PrevTwoWords),
         (prev, next).pairMap(SurroundingWords),
-        (beforeK ++ afterK).map(KWindowWord)
+        (before.takeRight(k) ++ after.take(k)).map(KWindowWord)
       )
       set.flatten
   }

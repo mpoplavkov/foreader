@@ -30,7 +30,7 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                  dictionary: Dictionary[F],
                                  k: Int) {
 
-  def prepareWords(corpusDir: File, outDir: File, batchSize: Int = 2000): F[Unit] = {
+  def prepareWords(corpusDir: File, outDir: File, batchSize: Int = 1000): F[Unit] = {
     val files = corpusDir.listFiles
     val count = files.size
     for {
@@ -77,8 +77,8 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
     Util.writeToFileJson(outFile, contexts, readable = false)
   }
 
-  private def combineWordFiles(contextsDir: File): F[Unit] = {
-    contextsDir.listFiles.toList.traverse { wordDir =>
+  def combineWordFiles(contextsDir: File): F[Unit] = {
+    contextsDir.listFiles.filter(_.isDirectory).toList.traverse { wordDir =>
       val outFile = FileUtil.childFile(contextsDir, s"${wordDir.getName}.json")
       wordDir.listFiles.toList
         .traverse { file =>

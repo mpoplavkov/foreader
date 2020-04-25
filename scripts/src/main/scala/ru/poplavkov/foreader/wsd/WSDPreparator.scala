@@ -12,9 +12,10 @@ import cats.syntax.traverse._
 import com.softwaremill.tagging._
 import io.circe.generic.auto._
 import ru.poplavkov.foreader.Globals._
-import ru.poplavkov.foreader.collocation.{Classifier, OneItemClassifier, WordCollocation}
+import ru.poplavkov.foreader.collocation.{OneItemClassifier, WordCollocation}
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
 import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, TokenExtractor}
+import ru.poplavkov.foreader.vector.VectorsMap
 import ru.poplavkov.foreader.{FileUtil, _}
 
 import scala.annotation.tailrec
@@ -28,6 +29,7 @@ import scala.language.higherKinds
 class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                  lexicalItemExtractor: LexicalItemExtractor[F],
                                  dictionary: Dictionary[F],
+                                 vectorsMap: VectorsMap,
                                  k: Int) {
 
   def prepareWords(corpusDir: File, outDir: File, batchSize: Int = 1000): F[Unit] = {
@@ -108,19 +110,18 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
         for {
           classifier <- calculateClassifierForItem(file, propagateToTheWholeDoc, iterations)
           oneItemFile = FileUtil.childFile(oneItemDir, file.getName)
-          _ <- Util.writeToFileJson(oneItemFile, classifier, readable = false)
+          _ <- Util.writeToFileJson(oneItemFile, classifier.collocationToMeaningSeq, readable = false)
         } yield ()
       }.map(_ => ())
 
     for {
       _ <- calcItemClassifiers
       itemClasssifiers <- oneItemDir.listFiles.toList.traverse { file =>
-        Util.readJsonFile[F, OneItemClassifier](file)
+        Util.readJsonFile[F, Seq[(WordCollocation, DictionaryMeaningId)]](file)
           .map(cl => qualifierFromFileName(file.getName) -> cl)
       }
 
-      classifier = Classifier(itemClasssifiers.toMap)
-      _ <- Util.writeToFileJson(classifierFile, classifier)
+      _ <- Util.writeToFileJson(classifierFile, itemClasssifiers.toMap)
     } yield ()
 
   }
@@ -215,7 +216,13 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
     val facts = trainData.collect { case TrainEntry(collocations, Some(meaningId), _) =>
       collocations -> meaningId
     }
-    OneItemClassifier.fromFacts(facts)
+    OneItemClassifier.fromFacts(
+      facts = facts,
+      minProbability = 0.7,
+      depth = None,
+      vectorsMap = vectorsMap,
+      vectorSimilarityThreshold = 0.01
+    )
   }
 
   private def qualifierFromFileName(fileName: String): Qualifier = {

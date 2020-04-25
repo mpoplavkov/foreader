@@ -16,8 +16,10 @@ import ru.poplavkov.foreader.{Language, _}
 object Main extends IOApp {
 
   val corpusDir: File = FileUtil.childFile(LocalDir, "corpus")
-  val outDir: File = FileUtil.childFile(LocalDir, "words")
-  outDir.mkdir()
+  val contextsDir: File = FileUtil.childFile(LocalDir, "words")
+  contextsDir.mkdir()
+  val classifierDir: File = FileUtil.childFile(LocalDir, "classifier")
+  classifierDir.mkdir()
   val vectorsFile: File = FileUtil.childFile(LocalDir, "vectors.txt")
 
   val tokenExtractor = new CoreNlpTokenExtractor[IO](Language.English)
@@ -30,6 +32,7 @@ object Main extends IOApp {
       vectorsMap <- VectorsExtractor.extractVectors[IO](vectorsFile.toPath)
       preparator = new WSDPreparator[IO](tokenExtractor, lexicalItemExtractor, dictionary, vectorsMap, k = 3)
 
-      _ <- preparator.prepareWords(corpusDir, outDir)
+//      _ <- preparator.prepareWords(corpusDir, contextsDir)
+      _ <- preparator.calculateClassifier(contextsDir, propagateToTheWholeDoc = true, iterations = 10, classifierDir)
     } yield ExitCode.Success
 }

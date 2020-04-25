@@ -47,7 +47,7 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       val text = FileUtil.readFile(file.toPath)
       val fileId = file.getName
       for {
-        _ <- Util.info[F](s"$ind/$count")
+        _ <- Util.info[F](s"${ind + 1}/$count")
         items <- lexicalItemsFrom(text)
         filtered <- items.toList.traverse { item =>
           dictionary.getDefinition(item).value.map(_.map(_ => item))
@@ -105,21 +105,26 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
     val oneItemDir = FileUtil.childFile(outDir, "one_item")
     oneItemDir.mkdir()
 
-    val calcItemClassifiers: F[Unit] = contextsDir.listFiles.toList
-      .traverse { file =>
+    val allWordsFiles = contextsDir.listFiles
+    val allSize = allWordsFiles.size
+    val calcItemClassifiers: F[Unit] = allWordsFiles.toList.zipWithIndex
+      .traverse { case (file, ind) =>
+        val oneItemFile = FileUtil.childFile(oneItemDir, file.getName)
         for {
           classifier <- calculateClassifierForItem(file, propagateToTheWholeDoc, iterations)
-          oneItemFile = FileUtil.childFile(oneItemDir, file.getName)
+          _ <- Util.info(s"${ind + 1}/$allSize created classifier")
           _ <- Util.writeToFileJson(oneItemFile, classifier.collocationToMeaningSeq, readable = false)
         } yield ()
       }.map(_ => ())
 
     for {
       _ <- calcItemClassifiers
+      _ <- Util.info("Combining all classifiers")
       itemClasssifiers <- oneItemDir.listFiles.toList.traverse { file =>
         Util.readJsonFile[F, Seq[(WordCollocation, DictionaryMeaningId)]](file)
           .map(cl => qualifierFromFileName(file.getName) -> cl)
       }
+      _ <- Util.info("All classifiers are read")
 
       _ <- Util.writeToFileJson(classifierFile, itemClasssifiers.toMap)
     } yield ()

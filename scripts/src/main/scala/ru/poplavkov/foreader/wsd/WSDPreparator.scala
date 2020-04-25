@@ -105,8 +105,8 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
     val oneItemDir = FileUtil.childFile(outDir, "one_item")
     oneItemDir.mkdir()
 
-    val allWordsFiles = contextsDir.listFiles
-    val allSize = allWordsFiles.size
+    val allWordsFiles = contextsDir.listFiles.filter(_.getName.endsWith(".json"))
+    val allSize = allWordsFiles.length
     val calcItemClassifiers: F[Unit] = allWordsFiles.toList.zipWithIndex
       .traverse { case (file, ind) =>
         val oneItemFile = FileUtil.childFile(oneItemDir, file.getName)
@@ -155,6 +155,7 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       val propagated = if (propagateToTheWholeDoc) {
         val docToMeaning = newTrained.groupBy(_.docId)
           .mapValues(_.flatMap(_.meaningId))
+          .filter(_._2.nonEmpty)
           .mapValues(meanings => CollectionUtil.mostFrequentElement(meanings)._1)
         newTrained.map { case TrainEntry(collocations, meaningOpt, docId) =>
           val meaning = meaningOpt.orElse(docToMeaning.get(docId))

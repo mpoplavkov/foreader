@@ -24,4 +24,14 @@ object CollectionUtil {
   def mergeMapsWithUniqueKeys[K, V](map1: Map[K, V], map2: Map[K, V]): Map[K, V] =
     mergeMaps(map1, map2)((_, _) => throw new IllegalArgumentException("Not unique keys"))
 
+  /**
+    * Looks for a most frequent occurrence among given sequence
+    *
+    * @return the most frequent element with its number
+    */
+  def mostFrequentElement[A](seq: Seq[A]): (A, Int) = {
+    require(seq.nonEmpty)
+    seq.groupBy(identity).mapValues(_.size).maxBy(_._2)
+  }
+
 }

@@ -56,7 +56,7 @@ object LexicalItem {
   private val MweDelimeter = "__"
   private val WordWithPosRegexp = "(.*)\\(\\((.*)\\)\\)".r
 
-  def fromQualifierDummy(qualifier: Qualifier): Either[Seq[WordStr], (WordStr, PartOfSpeech)] = {
+  def parseQualifier(qualifier: Qualifier): Either[Seq[WordStr], (WordStr, PartOfSpeech)] = {
     val wordOpt = qualifier match {
       case WordWithPosRegexp(word, posStr) =>
         PartOfSpeech.fromString(posStr).map { pos =>

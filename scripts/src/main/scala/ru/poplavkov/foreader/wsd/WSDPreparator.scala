@@ -1,6 +1,7 @@
 package ru.poplavkov.foreader.wsd
 
 import java.io.File
+import java.util.Base64
 
 import cats.effect.Sync
 import cats.instances.list._
@@ -9,11 +10,14 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
 import io.circe.generic.auto._
-import ru.poplavkov.foreader.dictionary.Dictionary
-import ru.poplavkov.foreader.text.{LexicalItemExtractor, TextContext, TokenExtractor}
-import ru.poplavkov.foreader.wsd.WSDPreparator._
+import ru.poplavkov.foreader.Globals.{DictionaryMeaningId, Qualifier, QualifierTag, WordStr}
+import ru.poplavkov.foreader.collocation.{Classifier, WordCollocation}
+import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
+import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, TokenExtractor}
 import ru.poplavkov.foreader.{FileUtil, _}
+import com.softwaremill.tagging._
 
+import scala.annotation.tailrec
 import scala.language.higherKinds
 
 /**
@@ -23,7 +27,8 @@ import scala.language.higherKinds
   */
 class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                                  lexicalItemExtractor: LexicalItemExtractor[F],
-                                 dictionary: Dictionary[F]) {
+                                 dictionary: Dictionary[F],
+                                 k: Int) {
 
   def prepareWords(corpusDir: File, outDir: File, batchSize: Int = 2000): F[Unit] = {
     val files = corpusDir.listFiles
@@ -39,9 +44,11 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       val fileId = file.getName
       for {
         _ <- Util.info[F](s"$ind/$count")
-        sentences <- tokenExtractor.extractSentences(text)
-        items <- lexicalItemExtractor.lexicalItemsFromSentences(sentences)
-      } yield items.map(i => (i, fileId))
+        items <- lexicalItemsFrom(text)
+        filtered <- items.toList.traverse { item =>
+          dictionary.getDefinition(item).value.map(_.map(_ => item))
+        }.map(_.flatten)
+      } yield filtered.map(i => (i, fileId))
     }.map(_.flatten)
 
     for {
@@ -58,26 +65,115 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
     } yield ()
   }
 
-  private def flush(qualifier: String,
+  private def flush(qualifier: Qualifier,
                     contexts: Seq[(TextContext, DocId)],
                     outDir: File): F[Unit] = {
-    val outFile = FileUtil.childFile(outDir, s"$qualifier.json")
+    val encodedQualifier = Base64.getEncoder.encodeToString(qualifier.getBytes)
+    val outFile = FileUtil.childFile(outDir, s"$encodedQualifier.json")
     for {
       existing <- if (outFile.exists()) {
-        Util.readJsonFile[F, Seq[(TextContext, String)]](outFile)
+        Util.readJsonFile[F, Seq[(TextContext, DocId)]](outFile)
       } else {
-        Seq.empty[(TextContext, String)].pure[F]
+        Seq.empty[(TextContext, DocId)].pure[F]
       }
       fullList = existing ++ contexts
       _ <- Util.writeToFileJson(outFile, fullList, readable = false)
     } yield ()
   }
 
+  def calculateClassifierForWord(wordContextsFile: File,
+                                 propagateToTheWholeDoc: Boolean,
+                                 iterations: Int): F[Classifier] = {
+    val encodedQualifier = wordContextsFile.getName.replace(".json", "")
+    val qualifier = new String(Base64.getDecoder.decode(encodedQualifier)).taggedWith[QualifierTag]
+    for {
+      contexts <- Util.readJsonFile[F, Seq[(TextContext, DocId)]](wordContextsFile)
+      trainData <- initialTrainData(qualifier, contexts)
+      classifier <- Sync[F].delay(train(qualifier, trainData, propagateToTheWholeDoc, iterations))
+    } yield classifier
+  }
 
-}
+  @tailrec
+  private def train(qualifier: Qualifier,
+                    trainData: Seq[TrainEntry],
+                    propagateToTheWholeDoc: Boolean, iterations: Int): Classifier = {
+    val classifier = trainDataToClassifier(qualifier, trainData)
+    if (iterations == 0) {
+      classifier
+    } else {
+      val newTrained = trainData.map { case TrainEntry(collocations, _, docId) =>
+        TrainEntry(collocations, classifier(qualifier, collocations), docId)
+      }
+      val propagated = if (propagateToTheWholeDoc) {
+        val docToMeaning = newTrained.groupBy(_.docId)
+          .mapValues(_.flatMap(_.meaningId))
+          .mapValues(meanings => CollectionUtil.mostFrequentElement(meanings)._1)
+        newTrained.map { case TrainEntry(collocations, meaningOpt, docId) =>
+          val meaning = meaningOpt.orElse(docToMeaning.get(docId))
+          TrainEntry(collocations, meaning, docId)
+        }
+      } else {
+        newTrained
+      }
 
-object WSDPreparator {
+      train(qualifier, propagated, propagateToTheWholeDoc, iterations - 1)
+    }
+  }
 
-  type DocId = String
+  private def initialTrainData(qualifier: Qualifier, contexts: Seq[(TextContext, DocId)]): F[Seq[TrainEntry]] = {
+    for {
+      meanings <- meaningsByQualifier(qualifier)
+      normalizedMeanings <- meanings.toList.traverse(normalizeMeaning)
+
+    } yield contexts.map { case (context, docId) =>
+      val meaningIdOpt = meaningIdByIntersectionWithContext(normalizedMeanings, context)
+      val collocations = WordCollocation.fromContext(context, k)
+      TrainEntry(collocations, meaningIdOpt, docId)
+    }
+
+  }
+
+  private def meaningsByQualifier(qualifier: Qualifier): F[Seq[DictionaryEntry.Meaning]] = {
+    val entryOpt = LexicalItem.parseQualifier(qualifier) match {
+      case Right((word, pos)) => dictionary.getDefinition(word, pos)
+      case Left(mwe) => dictionary.getDefinition(mwe)
+    }
+    entryOpt.value.map(_.toSeq.flatMap(_.meanings))
+  }
+
+  private def normalizeMeaning(meaning: DictionaryEntry.Meaning): F[(DictionaryMeaningId, Seq[WordStr])] =
+    for {
+      items <- lexicalItemsFrom(meaning.definition)
+      normalized = items.flatMap(_.lemmas)
+    } yield (meaning.id, normalized)
+
+  private def meaningIdByIntersectionWithContext(meanings: Seq[(DictionaryMeaningId, Seq[WordStr])],
+                                                 context: TextContext): Option[DictionaryMeaningId] = {
+    require(meanings.nonEmpty)
+    val contextWords = context match {
+      case sw: TextContext.SurroundingWords => sw.allWords
+    }
+    val (bestId, bestCount) = meanings.map { case (id, words) =>
+      id -> words.count(contextWords.contains)
+    }.maxBy(_._2)
+    if (bestCount == 0) {
+      None
+    } else {
+      Some(bestId)
+    }
+  }
+
+  private def lexicalItemsFrom(str: String): F[Seq[LexicalItem]] =
+    for {
+      sentences <- tokenExtractor.extractSentences(str)
+      items <- lexicalItemExtractor.lexicalItemsFromSentences(sentences)
+    } yield items
+
+  private def trainDataToClassifier(qualifier: Qualifier, trainData: Seq[TrainEntry]): Classifier = {
+    val facts = trainData.collect { case TrainEntry(collocations, Some(meaningId), _) =>
+      collocations -> meaningId
+    }
+    Classifier.fromWordFacts(qualifier, facts)
+  }
 
 }

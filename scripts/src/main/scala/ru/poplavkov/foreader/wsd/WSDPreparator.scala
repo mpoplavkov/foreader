@@ -1,11 +1,11 @@
 package ru.poplavkov.foreader.wsd
 
 import java.io.File
+import java.time.Instant
 import java.util.Base64
 
 import cats.effect.Sync
 import cats.instances.list._
-import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
@@ -33,9 +33,11 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
   def prepareWords(corpusDir: File, outDir: File, batchSize: Int = 2000): F[Unit] = {
     val files = corpusDir.listFiles
     val count = files.size
-    files.toList.zipWithIndex.grouped(batchSize).toList
-      .traverse(prepareBatch(_, count, outDir))
-      .map(_ => ())
+    for {
+      _ <- files.toList.zipWithIndex.grouped(batchSize).toList
+        .traverse(prepareBatch(_, count, outDir))
+      _ <- combineWordFiles(outDir)
+    } yield ()
   }
 
   private def prepareBatch(batch: Seq[(File, Int)], count: Int, outDir: File): F[Unit] = {
@@ -69,16 +71,28 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
                     contexts: Seq[(TextContext, DocId)],
                     outDir: File): F[Unit] = {
     val encodedQualifier = Base64.getEncoder.encodeToString(qualifier.getBytes)
-    val outFile = FileUtil.childFile(outDir, s"$encodedQualifier.json")
-    for {
-      existing <- if (outFile.exists()) {
-        Util.readJsonFile[F, Seq[(TextContext, DocId)]](outFile)
-      } else {
-        Seq.empty[(TextContext, DocId)].pure[F]
-      }
-      fullList = existing ++ contexts
-      _ <- Util.writeToFileJson(outFile, fullList, readable = false)
-    } yield ()
+    val wordDir = FileUtil.childFile(outDir, encodedQualifier)
+    wordDir.mkdir()
+    val outFile = FileUtil.childFile(wordDir, s"${Instant.now().toString}.json")
+    Util.writeToFileJson(outFile, contexts, readable = false)
+  }
+
+  private def combineWordFiles(contextsDir: File): F[Unit] = {
+    contextsDir.listFiles.toList.traverse { wordDir =>
+      val outFile = FileUtil.childFile(contextsDir, s"${wordDir.getName}.json")
+      wordDir.listFiles.toList
+        .traverse { file =>
+          Util.readJsonFile[F, Seq[(TextContext, DocId)]](file).map { contexts =>
+            file.delete()
+            contexts
+          }
+        }
+        .map(_.flatten)
+        .flatMap { fullList =>
+          wordDir.delete()
+          Util.writeToFileJson(outFile, fullList, readable = false)
+        }
+    }.map(_ => ())
   }
 
   def calculateClassifier(contextsDir: File,

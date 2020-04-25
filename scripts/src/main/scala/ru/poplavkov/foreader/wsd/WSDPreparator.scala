@@ -9,13 +9,13 @@ import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
+import com.softwaremill.tagging._
 import io.circe.generic.auto._
-import ru.poplavkov.foreader.Globals.{DictionaryMeaningId, Qualifier, QualifierTag, WordStr}
-import ru.poplavkov.foreader.collocation.{Classifier, WordCollocation}
+import ru.poplavkov.foreader.Globals._
+import ru.poplavkov.foreader.collocation.{Classifier, OneItemClassifier, WordCollocation}
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
 import ru.poplavkov.foreader.text.{LexicalItem, LexicalItemExtractor, TextContext, TokenExtractor}
 import ru.poplavkov.foreader.{FileUtil, _}
-import com.softwaremill.tagging._
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -81,28 +81,56 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
     } yield ()
   }
 
-  def calculateClassifierForWord(wordContextsFile: File,
-                                 propagateToTheWholeDoc: Boolean,
-                                 iterations: Int): F[Classifier] = {
-    val encodedQualifier = wordContextsFile.getName.replace(".json", "")
-    val qualifier = new String(Base64.getDecoder.decode(encodedQualifier)).taggedWith[QualifierTag]
+  def calculateClassifier(contextsDir: File,
+                          propagateToTheWholeDoc: Boolean,
+                          iterations: Int,
+                          outDir: File): F[Unit] = {
+    val classifierFile = FileUtil.childFile(outDir, "classifier.json")
+    val oneItemDir = FileUtil.childFile(outDir, "one_item")
+    oneItemDir.mkdir()
+
+    val calcItemClassifiers: F[Unit] = contextsDir.listFiles.toList
+      .traverse { file =>
+        for {
+          classifier <- calculateClassifierForItem(file, propagateToTheWholeDoc, iterations)
+          oneItemFile = FileUtil.childFile(oneItemDir, file.getName)
+          _ <- Util.writeToFileJson(oneItemFile, classifier, readable = false)
+        } yield ()
+      }.map(_ => ())
+
+    for {
+      _ <- calcItemClassifiers
+      itemClasssifiers <- oneItemDir.listFiles.toList.traverse { file =>
+        Util.readJsonFile[F, OneItemClassifier](file)
+          .map(cl => qualifierFromFileName(file.getName) -> cl)
+      }
+
+      classifier = Classifier(itemClasssifiers.toMap)
+      _ <- Util.writeToFileJson(classifierFile, classifier)
+    } yield ()
+
+  }
+
+  private def calculateClassifierForItem(wordContextsFile: File,
+                                         propagateToTheWholeDoc: Boolean,
+                                         iterations: Int): F[OneItemClassifier] = {
+    val qualifier = qualifierFromFileName(wordContextsFile.getName)
     for {
       contexts <- Util.readJsonFile[F, Seq[(TextContext, DocId)]](wordContextsFile)
       trainData <- initialTrainData(qualifier, contexts)
-      classifier <- Sync[F].delay(train(qualifier, trainData, propagateToTheWholeDoc, iterations))
+      classifier <- Sync[F].delay(train(trainData, propagateToTheWholeDoc, iterations))
     } yield classifier
   }
 
   @tailrec
-  private def train(qualifier: Qualifier,
-                    trainData: Seq[TrainEntry],
-                    propagateToTheWholeDoc: Boolean, iterations: Int): Classifier = {
-    val classifier = trainDataToClassifier(qualifier, trainData)
+  private def train(trainData: Seq[TrainEntry],
+                    propagateToTheWholeDoc: Boolean, iterations: Int): OneItemClassifier = {
+    val classifier = trainDataToClassifier(trainData)
     if (iterations == 0) {
       classifier
     } else {
       val newTrained = trainData.map { case TrainEntry(collocations, _, docId) =>
-        TrainEntry(collocations, classifier(qualifier, collocations), docId)
+        TrainEntry(collocations, classifier(collocations), docId)
       }
       val propagated = if (propagateToTheWholeDoc) {
         val docToMeaning = newTrained.groupBy(_.docId)
@@ -116,7 +144,7 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
         newTrained
       }
 
-      train(qualifier, propagated, propagateToTheWholeDoc, iterations - 1)
+      train(propagated, propagateToTheWholeDoc, iterations - 1)
     }
   }
 
@@ -169,11 +197,16 @@ class WSDPreparator[F[_] : Sync](tokenExtractor: TokenExtractor[F],
       items <- lexicalItemExtractor.lexicalItemsFromSentences(sentences)
     } yield items
 
-  private def trainDataToClassifier(qualifier: Qualifier, trainData: Seq[TrainEntry]): Classifier = {
+  private def trainDataToClassifier(trainData: Seq[TrainEntry]): OneItemClassifier = {
     val facts = trainData.collect { case TrainEntry(collocations, Some(meaningId), _) =>
       collocations -> meaningId
     }
-    Classifier.fromWordFacts(qualifier, facts)
+    OneItemClassifier.fromFacts(facts)
+  }
+
+  private def qualifierFromFileName(fileName: String): Qualifier = {
+    val encodedQualifier = fileName.replace(".json", "")
+    new String(Base64.getDecoder.decode(encodedQualifier)).taggedWith[QualifierTag]
   }
 
 }

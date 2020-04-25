@@ -24,4 +24,11 @@ trait Dictionary[F[_]] {
     getDefinition(item)
   }
 
+  final def getDefinition(mwe: Seq[WordStr]): OptionT[F, DictionaryEntry] = {
+    val anyPos = PartOfSpeech.Noun
+    val mweTokens = mwe.map(word => Token.Word(0, word, word, anyPos))
+    val item = LexicalItem.MultiWordExpression(mweTokens)
+    getDefinition(item)
+  }
+
 }

@@ -18,6 +18,10 @@ object Globals {
 
   type DictionaryMeaningId = String @@ DictionaryMeaningIdTag
 
+  trait QualifierTag
+
+  type Qualifier = String @@ QualifierTag
+
   implicit def taggedStringEncoder[T]: Encoder[String @@ T] = Encoder.encodeString.contramap(identity)
 
   implicit def taggedStringDecoder[T]: Decoder[String @@ T] = Decoder.decodeString.map(_.taggedWith[T])

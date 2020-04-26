@@ -8,7 +8,18 @@ import ru.poplavkov.foreader.text.TextContext
   *
   * @author mpoplavkov
   */
-sealed trait WordCollocation
+sealed trait WordCollocation {
+
+  def words: Seq[WordStr] = this match {
+    case WordCollocation.NextWord(word) => Seq(word)
+    case WordCollocation.PrevWord(word) => Seq(word)
+    case WordCollocation.NextTwoWords(first, second) => Seq(first, second)
+    case WordCollocation.PrevTwoWords(first, second) => Seq(first, second)
+    case WordCollocation.SurroundingWords(prev, next) => Seq(prev, next)
+    case WordCollocation.KWindowWord(word) => Seq(word)
+  }
+
+}
 
 object WordCollocation {
 

@@ -1,6 +1,7 @@
 package ru.poplavkov.foreader.text
 
-import ru.poplavkov.foreader.Globals.WordStr
+import com.softwaremill.tagging._
+import ru.poplavkov.foreader.Globals.{Qualifier, QualifierTag, WordStr, WordStrTag}
 
 /**
   * Single word, a part of a word, or a chain of words
@@ -9,6 +10,8 @@ import ru.poplavkov.foreader.Globals.WordStr
   * @author mpoplavkov
   */
 sealed trait LexicalItem {
+
+  def qualifier: Qualifier
 
   def context: Option[TextContext]
 
@@ -35,9 +38,35 @@ sealed trait LexicalItem {
 object LexicalItem {
 
   case class SingleWord(word: Token.Word,
-                        context: Option[TextContext] = None) extends LexicalItem
+                        context: Option[TextContext] = None) extends LexicalItem {
+
+    override def qualifier: Qualifier =
+      s"${word.lemma}((${PartOfSpeech.stringify(word.partOfSpeech)}))".taggedWith[QualifierTag]
+
+  }
 
   case class MultiWordExpression(words: Seq[Token.Word],
-                                 context: Option[TextContext] = None) extends LexicalItem
+                                 context: Option[TextContext] = None) extends LexicalItem {
+
+    override def qualifier: Qualifier =
+      words.map(_.lemma).mkString(MweDelimeter).taggedWith[QualifierTag]
+
+  }
+
+  private val MweDelimeter = "__"
+  private val WordWithPosRegexp = "(.*)\\(\\((.*)\\)\\)".r
+
+  def parseQualifier(qualifier: Qualifier): Either[Seq[WordStr], (WordStr, PartOfSpeech)] = {
+    val wordOpt = qualifier match {
+      case WordWithPosRegexp(word, posStr) =>
+        PartOfSpeech.fromString(posStr).map { pos =>
+          Right(word.taggedWith[WordStrTag], pos)
+        }
+      case _ =>
+        None
+    }
+
+    wordOpt.getOrElse(Left(qualifier.split(MweDelimeter).toSeq.map(_.taggedWith[WordStrTag])))
+  }
 
 }

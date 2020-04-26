@@ -25,7 +25,7 @@ object CollectionUtil {
     mergeMaps(map1, map2)((_, _) => throw new IllegalArgumentException("Not unique keys"))
 
   /**
-    * Looks for a most frequent occurrence among given sequence
+    * Looks for the most frequent occurrence among given sequence
     *
     * @return the most frequent element with its number
     */

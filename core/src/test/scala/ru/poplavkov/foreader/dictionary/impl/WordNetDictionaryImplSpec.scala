@@ -23,14 +23,14 @@ class WordNetDictionaryImplSpec extends SpecBase {
       val word = w"apple"
 
       val expectedMeaning1 = Meaning(
-        id = d"apple_7755101",
+        id = d"apple%1:13:00::",
         definition = "fruit with red or yellow or green skin and sweet to tart crisp whitish flesh",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq.empty,
         synonyms = Seq.empty
       )
       val expectedMeaning2 = Meaning(
-        id = d"apple_12654755",
+        id = d"apple%1:20:00::",
         definition = "native Eurasian tree widely cultivated in many varieties for its firm rounded edible fruits",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq.empty,
@@ -47,22 +47,22 @@ class WordNetDictionaryImplSpec extends SpecBase {
       val words = Seq(w"post", w"office")
 
       val expectedMeaning1 = Meaning(
-        id = d"post_office_8162561",
+        id = d"post_office%1:14:01::",
         definition = "a local branch where postal services are available",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq.empty,
         synonyms = Seq("local post office")
       )
       val expectedMeaning2 = Meaning(
-        id = d"post_office_8162285",
+        id = d"post_office%1:14:00::",
         definition = "an independent agency of the federal government responsible for mail delivery (and sometimes " +
           "telecommunications) between individuals and businesses in the United States",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq.empty,
-        synonyms = Seq("United States Post Office", "US Post Office", "Post Office", "PO")
+        synonyms = Seq("United States Post Office", "US Post Office", "PO")
       )
       val expectedMeaning3 = Meaning(
-        id = d"post_office_488337",
+        id = d"post_office%1:04:00::",
         definition = "a children's game in which kisses are exchanged for pretended letters",
         partOfSpeech = Some(PartOfSpeech.Noun),
         examples = Seq.empty,
@@ -84,14 +84,14 @@ class WordNetDictionaryImplSpec extends SpecBase {
       val word = w"book"
 
       val expectedMeaning1 = Meaning(
-        id = d"book_680696",
+        id = d"book%2:31:00::",
         definition = "engage for a performance",
         partOfSpeech = Some(PartOfSpeech.Verb),
         examples = Seq("Her agent had booked her for several concerts in Tokyo"),
         synonyms = Seq.empty
       )
       val expectedMeaning2 = Meaning(
-        id = d"book_2503969",
+        id = d"book%2:41:01::",
         definition = "arrange for and reserve (something for someone else) in advance",
         partOfSpeech = Some(PartOfSpeech.Verb),
         examples = Seq(
@@ -102,14 +102,14 @@ class WordNetDictionaryImplSpec extends SpecBase {
         synonyms = Seq("reserve", "hold")
       )
       val expectedMeaning3 = Meaning(
-        id = d"book_2503785",
+        id = d"book%2:41:00::",
         definition = "record a charge in a police register",
         partOfSpeech = Some(PartOfSpeech.Verb),
         examples = Seq("The policeman booked her when she tried to solicit a man"),
         synonyms = Seq.empty
       )
       val expectedMeaning4 = Meaning(
-        id = d"book_2605751",
+        id = d"book%2:41:03::",
         definition = "register in a hotel booker",
         partOfSpeech = Some(PartOfSpeech.Verb),
         examples = Seq.empty,

@@ -3,7 +3,7 @@ package ru.poplavkov.foreader.dictionary.impl
 import cats.data.OptionT
 import cats.effect.Sync
 import com.softwaremill.tagging._
-import net.sf.extjwnl.data.{POS, Synset}
+import net.sf.extjwnl.data.POS
 import net.sf.extjwnl.dictionary.{Dictionary => WordNetDictionary}
 import ru.poplavkov.foreader.Globals.{DictionaryMeaningId, DictionaryMeaningIdTag}
 import ru.poplavkov.foreader.VectorUtil
@@ -31,9 +31,7 @@ class WordNetDictionaryImpl[F[_] : Sync](vectorsMap: VectorsMap,
           entryFromDictionary(word.partOfSpeech, word.lemma)
             .map(orderMeaningsByContext(_, context))
         case LexicalItem.MultiWordExpression(words, _) =>
-          // searches entry for every pos in this MWE
-          words.view
-            .map(_.partOfSpeech)
+          PartOfSpeech.all.toStream
             .flatMap(entryFromDictionary(_, words.map(_.lemma).mkString(" ")))
             .headOption
       }
@@ -49,14 +47,16 @@ class WordNetDictionaryImpl[F[_] : Sync](vectorsMap: VectorsMap,
       defsAndExamples = glossary.split("; ")
       (examplesWithQuotes, defs) = defsAndExamples.partition(_.startsWith("\""))
       examples = examplesWithQuotes.map(_.replaceAll("\"", ""))
-      synonyms = sense.getWords.asScala.map(_.getLemma).filterNot(_ == lemma)
+      synsetWords = sense.getWords.asScala
+      (sameWord, synonyms) = synsetWords.partition(_.getLemma.equalsIgnoreCase(lemma))
+      senseKey <- sameWord.headOption.map(_.getSenseKey)
     } yield
       DictionaryEntry.Meaning(
-        id = getId(lemma, sense),
+        id = senseKey.taggedWith[DictionaryMeaningIdTag],
         definition = defs.mkString("; "),
         partOfSpeech = Some(partOfSpeech),
         examples = examples,
-        synonyms = synonyms
+        synonyms = synonyms.map(_.getLemma)
       )
 
     if (meanings.nonEmpty) {
@@ -102,12 +102,6 @@ class WordNetDictionaryImpl[F[_] : Sync](vectorsMap: VectorsMap,
       case None =>
         None
     }
-
-  private def getId(lemma: String, sense: Synset): DictionaryMeaningId = {
-    val lemmaKey = lemma.replaceAll("\\s+", "_")
-    val senseKey = sense.getKey
-    s"${lemmaKey}_$senseKey".taggedWith[DictionaryMeaningIdTag]
-  }
 
 }
 

@@ -9,14 +9,13 @@ import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
 import ru.poplavkov.foreader.text.{LexicalItem, PartOfSpeech, Token}
 import ru.poplavkov.foreader.SpecBase._
 import ru.poplavkov.foreader.Generators._
-import ru.poplavkov.foreader.vector.VectorsMap
 
 /**
   * @author mpoplavkov
   */
 class WordNetDictionaryImplSpec extends SpecBase {
 
-  private val dictionary: Dictionary[IO] = new WordNetDictionaryImpl(VectorsMap.Empty, Map.empty)
+  private val dictionary: Dictionary[IO] = new WordNetDictionaryImpl()
 
   "WordnetDictionaryImpl" should {
     "extract dictionary entry for single word" in {

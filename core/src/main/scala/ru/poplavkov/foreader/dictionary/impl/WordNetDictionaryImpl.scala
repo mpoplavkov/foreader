@@ -5,12 +5,10 @@ import cats.effect.Sync
 import com.softwaremill.tagging._
 import net.sf.extjwnl.data.POS
 import net.sf.extjwnl.dictionary.{Dictionary => WordNetDictionary}
-import ru.poplavkov.foreader.Globals.{DictionaryMeaningId, DictionaryMeaningIdTag}
-import ru.poplavkov.foreader.VectorUtil
+import ru.poplavkov.foreader.Globals.DictionaryMeaningIdTag
 import ru.poplavkov.foreader.dictionary.impl.WordNetDictionaryImpl._
 import ru.poplavkov.foreader.dictionary.{Dictionary, DictionaryEntry}
-import ru.poplavkov.foreader.text.{LexicalItem, PartOfSpeech, TextContext}
-import ru.poplavkov.foreader.vector.{MathVector, VectorsMap}
+import ru.poplavkov.foreader.text.{LexicalItem, PartOfSpeech}
 
 import scala.collection.JavaConverters._
 import scala.language.higherKinds
@@ -18,18 +16,15 @@ import scala.language.higherKinds
 /**
   * @author mpoplavkov
   */
-class WordNetDictionaryImpl[F[_] : Sync](vectorsMap: VectorsMap,
-                                         meaningToContext: Map[DictionaryMeaningId, MathVector])
-  extends Dictionary[F] {
+class WordNetDictionaryImpl[F[_] : Sync] extends Dictionary[F] {
 
   private val dict: WordNetDictionary = WordNetDictionary.getDefaultResourceInstance
 
   override def getDefinition(lexicalItem: LexicalItem): OptionT[F, DictionaryEntry] =
     OptionT(Sync[F].delay {
       lexicalItem match {
-        case LexicalItem.SingleWord(word, context) =>
+        case LexicalItem.SingleWord(word, _) =>
           entryFromDictionary(word.partOfSpeech, word.lemma)
-            .map(orderMeaningsByContext(_, context))
         case LexicalItem.MultiWordExpression(words, _) =>
           PartOfSpeech.all.toStream
             .flatMap(entryFromDictionary(_, words.map(_.lemma).mkString(" ")))
@@ -65,44 +60,6 @@ class WordNetDictionaryImpl[F[_] : Sync](vectorsMap: VectorsMap,
       None
     }
   }
-
-  private def orderMeaningsByContext(entry: DictionaryEntry,
-                                     context: Option[TextContext]): DictionaryEntry =
-    contextToVector(context) match {
-      case Some(contextVector) =>
-        val meaningsToDistance = entry.meanings.map { meaning =>
-          val distanceOpt = meaningToContext.get(meaning.id).map(VectorUtil.euclideanDistance(_, contextVector))
-          meaning -> distanceOpt
-        }
-
-        val firstOrder = meaningsToDistance.collect {
-          case (meaning, Some(distance)) =>
-            meaning -> distance
-        }.sortBy(_._2).map(_._1)
-
-        val secondOrder = meaningsToDistance.collect {
-          case (meaning, None) => meaning
-        }
-
-        val ordered = firstOrder ++ secondOrder
-        entry.copy(meanings = ordered)
-      case None =>
-        entry
-    }
-
-  private def contextToVector(context: Option[TextContext]): Option[MathVector] =
-    context match {
-      case Some(TextContext.SurroundingWords(before, after)) =>
-        val vectors = (before ++ after).flatMap(vectorsMap.getVector)
-        if (vectors.nonEmpty) {
-          Some(VectorUtil.avgVector(vectorsMap.dimension, vectors))
-        } else {
-          None
-        }
-      case None =>
-        None
-    }
-
 }
 
 object WordNetDictionaryImpl {

@@ -15,7 +15,6 @@ object Dependencies {
   private val ScalaLoggingVersion = "3.9.2"
   private val ExtjwnlVersion = "2.0.2"
   private val ExtjwnlDataVersion = "1.2"
-  private val SmileVersion = "2.2.2"
 
   // test
   private val ScalatestVersion = "3.1.0"
@@ -62,10 +61,6 @@ object Dependencies {
 
   val tagging = Seq(
     "com.softwaremill.common" %% "tagging" % SoftwaremillTaggingVersion
-  )
-
-  val smile = Seq(
-    "com.github.haifengl" %% "smile-scala" % SmileVersion
   )
 
 }
